@@ -5,25 +5,25 @@
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License" />
 </p>
 
-<h1 align="center">🤖 Sortix</h1>
+<h1 align="center">Sortix</h1>
 <p align="center"><strong>An intelligent, real-time downloads organizer and local file explorer.</strong></p>
 <p align="center">Sortix runs silently in the background, monitors your Downloads directory, and automatically organizes incoming files into target folders based on file types, extension rules, or content-matching keywords.</p>
 
 ---
 
-## ✨ Features
+## Features
 
-* 🕵️ **Active Patrol (Real-time monitoring):** Instantly detects new files landing in your Downloads directory and schedules organization once download completes (safely handles temporary files like `.crdownload` or `.part`).
-* 🧠 **Topic Classification (NLP Content Scanning):** Scans file names and document contents (supports PDF, DOCX, and TXT) for user-defined keywords (e.g., "Bank", "Gym", "University") to classify and file them into targeted directories.
-* ⚡ **Direct Extension Rules:** Simple rules mapping specific extensions directly to custom destinations (e.g., `.log` -> `Documents/Logs`).
-* 📁 **Bilingual File Explorer Interface:** A beautiful, responsive Web UI featuring a dynamic directory tree, navigation breadcrumbs, and detailed execution logs in both English and Spanish.
-* 🌓 **Rich Aesthetics:** Toggle between fluid dark/light themes featuring hardware-accelerated circular transitions (utilizing the modern View Transitions API).
-* ⚙️ **Cross-Platform Background Services:** Native setup scripts to easily install Sortix as a system service on **Linux (systemd)**, **macOS (LaunchAgents)**, or **Windows (Task Scheduler)**.
-* 🔒 **Privacy-First & Self-Hosted:** Runs entirely locally on your machine with no external server requests, zero tracking, and no database exposure.
+* **Active Patrol (Real-time monitoring):** Instantly detects new files landing in your Downloads directory and schedules organization once download completes (safely handles temporary files like `.crdownload` or `.part`).
+* **Topic Classification (NLP Content Scanning):** Scans file names and document contents (supports PDF, DOCX, and TXT) for user-defined keywords (e.g., "Bank", "Gym", "University") to classify and file them into targeted directories.
+* **Direct Extension Rules:** Simple rules mapping specific extensions directly to custom destinations (e.g., `.log` -> `Documents/Logs`).
+* **Bilingual File Explorer Interface:** A clean, responsive Web UI featuring a dynamic directory tree, navigation breadcrumbs, and detailed execution logs in both English and Spanish.
+* **Rich Theme System:** Toggle between fluid dark and light themes featuring hardware-accelerated circular transitions (utilizing the modern View Transitions API).
+* **Cross-Platform Background Services:** Native setup scripts to easily install Sortix as a system service on Linux (systemd), macOS (LaunchAgents), or Windows (Task Scheduler).
+* **Privacy-First & Self-Hosted:** Runs entirely locally on your machine with no external server requests, zero tracking, and no database exposure.
 
 ---
 
-## 🛠 How It Works
+## How It Works
 
 When a new file finishes downloading, it undergoes a prioritized organizational pipeline:
 
@@ -45,19 +45,19 @@ graph TD
 
 If no custom rules or topic keyword hits are found, files fall back to standard category mapping:
 
-| Category | Icon | Target Folder (Relative to `~`) | Supported Extensions |
-| :--- | :---: | :--- | :--- |
-| **Images** | 🖼️ | `Pictures/Downloads` | `jpg`, `jpeg`, `png`, `gif`, `webp`, `svg`, `raw`... |
-| **Videos** | 🎥 | `Videos/Downloads` | `mp4`, `mkv`, `mov`, `avi`, `webm`, `flv`, `wmv`... |
-| **Music** | 🎵 | `Music/Downloads` | `mp3`, `wav`, `flac`, `ogg`, `m4a`, `aac`, `wma`... |
-| **Compressed**| 📦 | `Downloads/Compressed` | `zip`, `rar`, `7z`, `tar`, `gz`, `tgz`, `bz2`... |
-| **Installers**| ⚙️ | `Downloads/Installers` | `exe`, `msi`, `deb`, `rpm`, `apk`, `dmg`, `pkg`... |
-| **Documents** | 📄 | `Documents/Other` | `pdf`, `doc`, `docx`, `odt`, `txt`, `xlsx`, `csv`... |
-| **Other** | ❓ | `Downloads/Other` | *Any extension not mapped above* |
+| Category | Target Folder (Relative to `~`) | Supported Extensions |
+| :--- | :--- | :--- |
+| **Images** | `Pictures/Downloads` | `jpg`, `jpeg`, `png`, `gif`, `webp`, `svg`, `raw`... |
+| **Videos** | `Videos/Downloads` | `mp4`, `mkv`, `mov`, `avi`, `webm`, `flv`, `wmv`... |
+| **Music** | `Music/Downloads` | `mp3`, `wav`, `flac`, `ogg`, `m4a`, `aac`, `wma`... |
+| **Compressed** | `Downloads/Compressed` | `zip`, `rar`, `7z`, `tar`, `gz`, `tgz`, `bz2`... |
+| **Installers** | `Downloads/Installers` | `exe`, `msi`, `deb`, `rpm`, `apk`, `dmg`, `pkg`... |
+| **Documents** | `Documents/Other` | `pdf`, `doc`, `docx`, `odt`, `txt`, `xlsx`, `csv`... |
+| **Other** | `Downloads/Other` | *Any extension not mapped above* |
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 * Python 3.10 or higher.
@@ -86,7 +86,7 @@ If no custom rules or topic keyword hits are found, files fall back to standard 
 
 ---
 
-## 🖥️ Background Service Installation (Recommended)
+## Background Service Installation (Recommended)
 
 To keep Sortix watching your Downloads directory continuously without keeping a terminal open, install it as a background service:
 
@@ -114,7 +114,7 @@ cd backend/deploy
 
 ---
 
-## ⚙️ Configuration & Customization
+## Configuration & Customization
 
 * **Custom Categories:** Base categories, folder paths, and extension maps are customized by editing [backend/config/categories.json](backend/config/categories.json).
 * **Custom Topics:** Topics (e.g. "Work", "Finances") are managed directly in the Web UI under Settings -> Topics.
@@ -122,6 +122,6 @@ cd backend/deploy
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
