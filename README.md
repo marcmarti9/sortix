@@ -1,172 +1,159 @@
 # Sortix
 
-Organizador automatico de descargas, con interfaz tipo explorador de
-archivos. Vigila tu carpeta de Descargas y, en cuanto aparece un archivo
-nuevo, lo mueve a la carpeta que le corresponde:
+**Privacy-first automatic download organizer.** Sortix watches your Downloads
+folder and files everything where it belongs — bank statements, screenshots,
+invoices, installers — into clearly named folders, entirely on your machine.
 
-- **Fotos** -> `Pictures/Descargas`
-- **Videos** -> `Videos/Descargas`
-- **Musica** -> `Music/Descargas`
-- **Comprimidos** -> `Downloads/Comprimidos`
-- **Instaladores** (.exe, .msi, .deb, .apk...) -> `Downloads/Instaladores`
-- **Cualquier otro documento** -> `Documents/Otros`
-- **Todo lo demas** -> `Downloads/Otros`
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)]()
 
-Y ademas, **para absolutamente cualquier cosa que quieras agrupar** (no solo
-la universidad: puede ser tu banco, el gimnasio, una app en concreto,
-facturas de un proveedor...), defines **Temas**: un nombre, una carpeta
-destino y unas palabras clave. Para los archivos PDF, DOCX y TXT, Sortix
-mira primero el nombre del archivo y, si no hay pistas claras, el contenido
-del documento buscando esas palabras clave. Si un documento no encaja con
-ningun Tema, va a `Documents/Otros` en vez de forzarlo dentro de uno.
+## Why Sortix?
 
-Ejemplo: creas el Tema "Banco" -> `Documents/Banco`, palabras clave
-`banco, extracto, iban`. La primera vez que se descargue un PDF de tu banco,
-Sortix crea la carpeta `Documents/Banco` sola y lo archiva ahi. Lo mismo
-para "Gimnasio", "Netflix", o lo que sea que se te ocurra.
+Your Downloads folder is where files go to die. Sortix gives every file a
+proper home the moment it finishes downloading — and because it routinely
+handles sensitive documents (bank statements, contracts, medical PDFs), it is
+built local-first from the ground up:
 
-Tambien puedes crear reglas mas simples por extension (ej. `.log` ->
-`Documents/Logs`), que siempre tienen prioridad sobre la clasificacion
-automatica.
+- **100% local.** No cloud, no telemetry, no network calls. Content-based
+  classification reads PDF/DOCX/TXT files on your machine and stores only
+  the file name and where it was moved.
+- **Descriptive folders**, not junk drawers: screenshots go to
+  `Pictures/Capturas de pantalla`, invoices to `Documents/Facturas y recibos`,
+  installers to `Downloads/Programas e instaladores`.
+- **Topics**: teach Sortix your world once — "Bank" → `Documents/Banco` with
+  keywords like `iban, extracto` — and every matching document (by file name
+  *or* content) is filed there automatically, forever.
+- **Undo anything** from the built-in history, collision-safe.
+- **Hardened by default**: path-traversal-proof destinations, CSRF/DNS
+  rebinding protection, token auth when exposed beyond localhost.
 
-Todas las rutas son relativas a tu carpeta personal (`~` / `C:\Users\tu_usuario`),
-asi que funciona igual en Linux, Windows y Mac.
-
-## Como se usa
-
-La idea es tocarlo una vez (crear tus Temas y reglas en Ajustes) y que a
-partir de ahi corra solo en segundo plano. La interfaz principal es un
-explorador de archivos: la barra lateral tiene Descargas, las categorias
-base y tus Temas; al hacer click en cualquiera ves su contenido real, con
-breadcrumbs para moverte entre carpetas. Arriba a la derecha: el interruptor
-de **Patrulla Activa**, el boton **Organizar ahora** (para lo que ya haya en
-Descargas) y el icono de engranaje para abrir **Ajustes** (Temas y reglas).
-
-La primera vez que la abres, si no tienes ningun Tema ni regla, se abre
-Ajustes solo para que definas los tuyos.
-
-En Ajustes hay tambien una pestana **Historial** con los ultimos movimientos:
-si un archivo acabo donde no debia, el boton **Deshacer** lo devuelve a su
-carpeta de origen (sin pisar nada: si ya existe otro archivo con ese nombre,
-se restaura como "nombre (1).ext").
-
-## Privacidad y seguridad
-
-Sortix esta pensado para manejar documentos sensibles (extractos bancarios,
-facturas, contratos...), asi que:
-
-- **Todo es 100% local.** No hay llamadas a internet, ni telemetria, ni IA
-  en la nube: la clasificacion por contenido (PDF/DOCX/TXT) se hace leyendo
-  el archivo en tu propia maquina y no se guarda el contenido en ningun
-  sitio, solo el nombre y a donde se movio.
-- **Escucha solo en 127.0.0.1 por defecto**, y ademas valida las cabeceras
-  `Host` y `Origin` de cada peticion, de modo que una web maliciosa abierta
-  en tu navegador no puede hablar con la API (CSRF / DNS rebinding).
-- **Los destinos de reglas y Temas se validan**: siempre son carpetas
-  relativas a tu carpeta personal; rutas absolutas o con `..` se rechazan,
-  tanto al guardarlas como justo antes de mover cada archivo.
-- **Si expones Sortix a la red** (`HOST=0.0.0.0` en `.env`, p.ej. en una
-  Raspberry), es obligatorio definir `SORTIX_TOKEN` en `.env` — sin token el
-  servidor se niega a arrancar. La interfaz te pedira ese token la primera
-  vez. Ten en cuenta que el trafico es HTTP plano: usalo solo en redes de
-  confianza o detras de un proxy con TLS.
-- La base de datos (`database/sortix.db`) solo guarda tus Temas, reglas y el
-  historial de movimientos, y esta excluida de git junto con `.env`.
-
-## Estructura del proyecto
-
-```
-backend/    servidor Python (Flask + watchdog) que vigila y organiza
-frontend/   interfaz web (explorador de archivos) para gestionar Temas/reglas
-database/   esquema y base de datos SQLite (temas, reglas, historial, ajustes)
-```
-
-## Uso manual (para probarlo)
+## Quick start
 
 ```bash
-cd backend
+git clone https://github.com/marcmarti9/sortix
+cd sortix/backend
 python3 -m venv .venv
 ./.venv/bin/pip install -r requirements.txt
-./.venv/bin/python main.py
+./.venv/bin/python main.py          # web UI at http://127.0.0.1:5000
 ```
 
-Abre http://127.0.0.1:5000 en el navegador.
+### Desktop app mode
 
-Configuracion opcional en `backend/.env` (copia `backend/.env.example`):
-`HOST`, `PORT`, `DOWNLOADS_DIR` (si tu carpeta de descargas no es la
-estandar) y `SORTIX_TOKEN` (ver Privacidad y seguridad).
+Run Sortix in its own window instead of a browser tab:
 
-Para comprobar que todo funciona (usa un HOME y una BD temporales, no toca
-tus archivos):
+```bash
+./.venv/bin/pip install -r requirements-desktop.txt   # optional, for a native window
+./.venv/bin/python desktop.py
+```
+
+`desktop.py` uses a native window (pywebview) when available, falls back to a
+Chromium app window (no address bar), and finally to your default browser. If
+the background service is already running, it simply attaches to it.
+
+### Run permanently in the background (recommended)
+
+| OS | Install | Uninstall |
+|---|---|---|
+| Linux (systemd user service) | `cd backend/deploy && ./install_linux.sh` | `./uninstall_linux.sh` |
+| Windows (Scheduled Task) | `powershell -ExecutionPolicy Bypass -File install_windows.ps1` | `...uninstall_windows.ps1` |
+| macOS (LaunchDaemon) | `cd backend/deploy && ./install_macos.sh` | `./uninstall_macos.sh` |
+
+On Linux, `sudo loginctl enable-linger $USER` keeps it running without an
+open session. Once installed, open the UI whenever you want to toggle the
+watcher ("Patrulla Activa"), manage Topics/rules, or undo a move.
+
+## How files are classified
+
+Priority order — first match wins:
+
+1. **Your extension rules** (e.g. `.log` → `Documents/Logs`).
+2. **Your Topics** — file name first, then document content (PDF/DOCX/TXT).
+3. **Descriptive subcategories** by file-name patterns (screenshots,
+   invoices, résumés, tickets, contracts…).
+4. **Optional local LLM** (see below).
+5. **Base category** by extension (images → `Pictures`, music → `Music`,
+   archives → `Downloads/Archivos comprimidos`, unmatched documents →
+   `Documents/Sin clasificar`, …).
+
+All destinations are relative to your home folder and validated — a rule can
+never move files outside it. Categories, folders and patterns are editable in
+`backend/config/categories.json`; Topics and rules live in the UI.
+
+## Optional: local AI folder naming
+
+If your machine can handle it, Sortix can ask a small local LLM (via
+[Ollama](https://ollama.com)) to name a folder for documents nothing else
+matched — e.g. a random recipe PDF ends up in `Documents/Recetas` instead of
+`Documents/Sin clasificar`. In `backend/.env`:
+
+```ini
+SORTIX_LLM=1
+SORTIX_LLM_MODEL=llama3.2   # any small local model
+```
+
+Strictly off by default, and fully optional: on modest hardware just leave it
+disabled — pattern-based classification handles everything. Document excerpts
+are only ever sent to your own Ollama on localhost, never to the internet.
+Suggested names are sanitized and confined to the category folder, and any
+failure silently falls back to normal classification.
+
+## Configuration
+
+Copy `backend/.env.example` to `backend/.env`. Everything is optional:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `HOST` / `PORT` | `127.0.0.1` / `5000` | Where the UI/API listens |
+| `DOWNLOADS_DIR` | `~/Downloads` | Folder to watch |
+| `SORTIX_TOKEN` | – | API token; **required** if `HOST` leaves localhost |
+| `SORTIX_LLM` | off | Enable local LLM naming |
+| `SORTIX_LLM_URL` / `SORTIX_LLM_MODEL` | Ollama defaults | Local model endpoint |
+
+## Privacy & security
+
+- Listens on `127.0.0.1` only by default, and additionally validates the
+  `Host` and `Origin` headers of every request, so a malicious website open
+  in your browser cannot talk to the API (CSRF / DNS rebinding).
+- Rule/Topic destinations are validated as home-relative paths — absolute
+  paths and `..` are rejected both when saved and again right before every
+  move.
+- Exposing Sortix on your network (`HOST=0.0.0.0`, e.g. a Raspberry Pi)
+  requires `SORTIX_TOKEN`; without it the server refuses to start. Traffic
+  is plain HTTP — use a trusted network or a TLS proxy.
+- The SQLite database stores only your Topics, rules and the move history;
+  it is git-ignored along with `.env`.
+- API responses (which contain file names) are sent with `Cache-Control:
+  no-store`.
+
+## Testing
+
+Self-contained integration suite — uses a temporary HOME and database, never
+touches your real files:
 
 ```bash
 cd backend
 ./.venv/bin/python tests/test_all.py
 ```
 
-## Instalar como servicio en segundo plano (recomendado)
+## Project structure
 
-Para que Sortix vigile Descargas siempre, sin tener que abrir nada a mano:
-
-**Linux (systemd, servicio de usuario):**
-
-```bash
-cd backend/deploy
-./install_linux.sh
+```
+backend/    Python server (Flask + watchdog): watcher, classifier, API
+frontend/   web UI (file-explorer style) for Topics, rules and history
+database/   SQLite schema (Topics, rules, move history, settings)
 ```
 
-Arranca con tu sesion y sigue corriendo en segundo plano. Para quitarlo:
-`./uninstall_linux.sh`. Para que siga activo incluso sin sesion iniciada:
-`sudo loginctl enable-linger $USER`.
+## Contributing
 
-**Windows (Tarea Programada, sin ventana):**
+Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
+The `main` branch is protected; all changes land via reviewed PRs.
 
-```powershell
-cd backend\deploy
-powershell -ExecutionPolicy Bypass -File install_windows.ps1
-```
+## Support the project
 
-Para quitarlo: `powershell -ExecutionPolicy Bypass -File uninstall_windows.ps1`.
+If Sortix saves you time, you can support development through
+**GitHub Sponsors** (button at the top of the repo). Thank you!
 
-**macOS (LaunchDaemon, arranca con el sistema):**
+## License
 
-```bash
-cd backend/deploy
-./install_macos.sh
-```
-
-Pide tu contrasena (sudo) porque se registra para arrancar con el propio
-sistema, no solo al iniciar sesion. Para quitarlo: `./uninstall_macos.sh`.
-
-En los tres casos, una vez instalado, sigue abriendo http://127.0.0.1:5000
-cuando quieras encender/apagar la patrulla o tocar tus Temas/reglas — el
-servicio de fondo se limita a escuchar ahi, no hace falta lanzar nada mas.
-
-## Compartir con mas gente
-
-El proyecto no tiene ninguna ruta ni usuario hardcodeado: cada persona que lo
-clona y ejecuta el instalador de su sistema (Linux/Windows/macOS, arriba)
-tiene su propia instalacion, con su propia base de datos, sus propios
-Temas/reglas y vigilando su propia carpeta de Descargas. Nada se comparte
-entre instalaciones.
-
-Para que alguien lo use solo necesita:
-
-```bash
-git clone <la-url-de-tu-repo>
-cd sortix/backend/deploy
-./install_linux.sh   # o install_windows.ps1 / install_macos.sh segun su SO
-```
-
-Y desde cero, sin tocar nada mas, ya organiza fotos/videos/musica/comprimidos/
-instaladores/documentos por tipo. Los Temas personalizados (banco, gimnasio,
-apps...) se anaden despues desde la propia interfaz si quieren.
-
-## Anadir/quitar categorias base
-
-Los Temas (banco, gimnasio, apps...) se gestionan desde la interfaz, en
-Ajustes — no hace falta tocar ningun fichero para eso. Solo para cambiar las
-categorias base (fotos, videos, documentos...) hay que editar
-`backend/config/categories.json`: que extensiones caen en cada una y en que
-carpeta se guardan. No hace falta reiniciar la base de datos para este
-cambio, solo reiniciar el servicio (o `main.py` si lo tienes abierto a mano).
+[MIT](LICENSE) © Marc Martí Torralba

@@ -104,7 +104,7 @@ downloads.mkdir(parents=True, exist_ok=True)
 moved = organize_directory(downloads)
 assert len(moved) == 1, moved
 dest = Path(moved[0]["destination"])
-assert dest == FAKE_HOME / "Pictures/Descargas/foto.jpg", dest
+assert dest == FAKE_HOME / "Pictures/foto.jpg", dest
 assert dest.exists() and not (downloads / "foto.jpg").exists()
 
 # ---- tema por nombre de archivo ----
@@ -112,6 +112,32 @@ assert dest.exists() and not (downloads / "foto.jpg").exists()
 moved = organize_directory(downloads)
 assert len(moved) == 1 and "Banco" in moved[0]["destination"], moved
 print("OK organizacion basica y por Tema")
+
+# ---- subcategorias descriptivas por nombre ----
+(downloads / "Screenshot 2026-07-19 at 10.00.00.png").write_bytes(b"png")
+(downloads / "factura_luz_enero.pdf").write_bytes(b"%PDF-1.4 fake")
+(downloads / "notas sueltas.txt").write_bytes(b"apuntes varios sin nada especial")
+moved = organize_directory(downloads)
+dests = {m["filename"]: m["destination"] for m in moved}
+assert dests["Screenshot 2026-07-19 at 10.00.00.png"].endswith(
+    "Pictures/Capturas de pantalla/Screenshot 2026-07-19 at 10.00.00.png"), dests
+assert "Documents/Facturas y recibos" in dests["factura_luz_enero.pdf"], dests
+assert "Documents/Sin clasificar" in dests["notas sueltas.txt"], dests
+print("OK subcategorias descriptivas")
+
+# ---- LLM local: apagado por defecto y sanitizacion estricta ----
+from app import llm  # noqa: E402
+
+assert llm.suggest_subfolder("x.pdf", "contenido", "Documents") is None  # desactivado
+s = llm._sanitize_folder_name
+assert s("Recetas") == "Recetas"
+assert s('  "Apuntes de fisica".  ') == "Apuntes de fisica"
+assert s("../etc") is None
+assert s("a/b") is None
+assert s("C:evil") is None
+assert s("") is None
+assert s("x" * 60) is None
+print("OK LLM apagado por defecto y sanitizacion")
 
 # ---- anti-bucle: regla con destino = Downloads ----
 r = client.post("/api/rules", json={"extension": "zip", "destination": "Downloads"})
@@ -138,7 +164,7 @@ move = next(m for m in log if m["filename"] == "foto.jpg")
 r = client.post(f"/api/log/{move['id']}/undo")
 assert r.status_code == 200, r.data
 assert (downloads / "foto.jpg").exists()
-assert not (FAKE_HOME / "Pictures/Descargas/foto.jpg").exists()
+assert not (FAKE_HOME / "Pictures/foto.jpg").exists()
 r = client.post(f"/api/log/{move['id']}/undo")
 assert r.status_code == 409, (r.status_code, r.data)
 r = client.post("/api/log/99999/undo")

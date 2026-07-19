@@ -1,47 +1,62 @@
 {
-  "_comment": "Mapea extensiones de archivo (en minusculas, sin punto) a una categoria. 'folder' es relativo a la carpeta personal del usuario. Anade o cambia entradas libremente.",
+  "_comment": "Mapea extensiones de archivo (en minusculas, sin punto) a una categoria. 'folder' es relativo a la carpeta personal del usuario. Las 'subcategories' afinan el destino segun patrones en el nombre del archivo (palabras completas, sin tildes). Anade o cambia entradas libremente.",
 
   "categories": {
     "images": {
       "label": "Imagenes",
       "icon": "image",
-      "folder": "Pictures/Descargas",
-      "extensions": ["jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp", "tiff", "svg", "raw"]
+      "folder": "Pictures",
+      "extensions": ["jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp", "tiff", "svg", "raw"],
+      "subcategories": [
+        { "label": "Capturas de pantalla", "folder": "Pictures/Capturas de pantalla", "patterns": ["screenshot", "captura", "screen shot", "pantallazo"] },
+        { "label": "Fondos de pantalla", "folder": "Pictures/Fondos de pantalla", "patterns": ["wallpaper", "fondo de pantalla"] },
+        { "label": "Memes", "folder": "Pictures/Memes", "patterns": ["meme"] }
+      ]
     },
     "videos": {
       "label": "Videos",
       "icon": "video",
-      "folder": "Videos/Descargas",
-      "extensions": ["mp4", "mkv", "mov", "avi", "webm", "flv", "wmv", "m4v"]
+      "folder": "Videos",
+      "extensions": ["mp4", "mkv", "mov", "avi", "webm", "flv", "wmv", "m4v"],
+      "subcategories": [
+        { "label": "Grabaciones de pantalla", "folder": "Videos/Grabaciones de pantalla", "patterns": ["screen recording", "grabacion", "screencast"] }
+      ]
     },
     "music": {
       "label": "Musica",
       "icon": "audio",
-      "folder": "Music/Descargas",
+      "folder": "Music",
       "extensions": ["mp3", "wav", "flac", "ogg", "m4a", "aac", "wma"]
     },
     "compressed": {
       "label": "Comprimidos",
       "icon": "archive",
-      "folder": "Downloads/Comprimidos",
+      "folder": "Downloads/Archivos comprimidos",
       "extensions": ["zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz"]
     },
     "installers": {
       "label": "Instaladores",
       "icon": "installer",
-      "folder": "Downloads/Instaladores",
+      "folder": "Downloads/Programas e instaladores",
       "extensions": ["exe", "msi", "deb", "rpm", "appimage", "dmg", "pkg", "apk"]
     },
     "documents": {
       "label": "Documentos",
       "icon": "document",
-      "folder": "Documents/Otros",
-      "extensions": ["pdf", "doc", "docx", "odt", "txt", "ppt", "pptx", "xls", "xlsx", "csv", "rtf"]
+      "folder": "Documents/Sin clasificar",
+      "extensions": ["pdf", "doc", "docx", "odt", "txt", "ppt", "pptx", "xls", "xlsx", "csv", "rtf"],
+      "subcategories": [
+        { "label": "Facturas y recibos", "folder": "Documents/Facturas y recibos", "patterns": ["factura", "invoice", "recibo", "receipt"] },
+        { "label": "Curriculums", "folder": "Documents/Curriculums", "patterns": ["cv", "curriculum", "resume"] },
+        { "label": "Manuales y guias", "folder": "Documents/Manuales y guias", "patterns": ["manual", "guia", "guide", "instrucciones"] },
+        { "label": "Entradas y billetes", "folder": "Documents/Entradas y billetes", "patterns": ["entrada", "ticket", "billete", "boarding pass", "boarding"] },
+        { "label": "Contratos", "folder": "Documents/Contratos", "patterns": ["contrato", "contract", "acuerdo"] }
+      ]
     },
     "other": {
       "label": "Otros",
       "icon": "other",
-      "folder": "Downloads/Otros",
+      "folder": "Downloads/Otros archivos",
       "extensions": []
     }
   },

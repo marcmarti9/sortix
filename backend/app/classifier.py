@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 
-from app import db
+from app import db, llm
 from config.settings import load_categories
 
 MAX_CONTENT_CHARS = 20_000  # suficiente para detectar el tema sin leer el pdf entero
@@ -132,17 +132,49 @@ def detect_topic(path: Path, ext: str, topics: list[dict]) -> dict | None:
     return None
 
 
+def _match_subcategory(category: str, stem: str) -> dict | None:
+    """Subcategorias descriptivas por patrones en el nombre del archivo
+    (capturas de pantalla, facturas, curriculums...)."""
+    stem_norm = normalize(stem)
+    for sub in _categories["categories"][category].get("subcategories", []):
+        for pattern in sub.get("patterns", []):
+            pattern_norm = normalize(pattern)
+            if pattern_norm and re.search(r"\b" + re.escape(pattern_norm) + r"\b", stem_norm):
+                return sub
+    return None
+
+
 def classify(path: Path) -> dict:
     """Devuelve {"category": str, "topic": str | None, "folder": str}
-    donde 'folder' es la ruta relativa a la carpeta personal del usuario."""
+    donde 'folder' es la ruta relativa a la carpeta personal del usuario.
+
+    Prioridad: Temas del usuario > subcategorias descriptivas por nombre >
+    LLM local opcional (documentos) > carpeta base de la categoria."""
     ext = path.suffix.lower().lstrip(".")
     category = _EXT_TO_CATEGORY.get(ext, "other")
 
+    content = ""
     if ext in _CONTENT_EXTENSIONS:
         topics = db.list_topics()
-        topic = detect_topic(path, ext, topics)
-        if topic:
-            return {"category": f"tema: {topic['name']}", "topic": topic["name"], "folder": topic["destination"]}
+        if topics:
+            topic = _best_topic_for_text(path.stem, topics)
+            if topic is None:
+                content = _extract_content(path, ext)
+                topic = _best_topic_for_text(content, topics)
+            if topic:
+                return {"category": f"tema: {topic['name']}", "topic": topic["name"], "folder": topic["destination"]}
 
-    folder = _categories["categories"][category]["folder"]
-    return {"category": category, "topic": None, "folder": folder}
+    sub = _match_subcategory(category, path.stem)
+    if sub:
+        return {"category": sub["label"], "topic": None, "folder": sub["folder"]}
+
+    category_folder = _categories["categories"][category]["folder"]
+
+    if ext in _CONTENT_EXTENSIONS and llm.LLM_ENABLED:
+        if not content:
+            content = _extract_content(path, ext)
+        suggested = llm.suggest_subfolder(path.name, content, category_folder)
+        if suggested:
+            return {"category": f"IA local: {suggested.rsplit('/', 1)[-1]}", "topic": None, "folder": suggested}
+
+    return {"category": category, "topic": None, "folder": category_folder}
