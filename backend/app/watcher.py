@@ -2,6 +2,8 @@
 nuevo en cuanto termina de descargarse. Esto es lo que enciende/apaga el
 interruptor de 'Patrulla Activa' en la interfaz."""
 
+import queue
+import sys
 import threading
 import time
 from pathlib import Path
@@ -12,6 +14,7 @@ from watchdog.observers import Observer
 from app.organizer import organize_file
 from config.settings import IGNORED_SUFFIXES
 
+# Limites de estabilidad para evitar organizar descargas incompletas.
 STABLE_CHECKS_REQUIRED = 4
 STABLE_CHECK_INTERVAL = 0.75
 STABLE_WAIT_TIMEOUT_TICKS = 40  # ~30s de margen para descargas grandes
@@ -22,6 +25,12 @@ class _DownloadEventHandler(FileSystemEventHandler):
         super().__init__()
         self._in_progress: set[Path] = set()
         self._lock = threading.Lock()
+        
+        # Sistema de cola para limitar la concurrencia a exactamente 4 hilos demonio,
+        # previniendo la caida del sistema por explosion de hilos (DoS).
+        self._queue = queue.Queue()
+        for _ in range(4):
+            threading.Thread(target=self._worker, daemon=True).start()
 
     def on_created(self, event):
         if not event.is_directory:
@@ -40,15 +49,21 @@ class _DownloadEventHandler(FileSystemEventHandler):
             if path in self._in_progress:
                 return
             self._in_progress.add(path)
-        threading.Thread(target=self._wait_and_organize, args=(path,), daemon=True).start()
+        self._queue.put(path)
 
-    def _wait_and_organize(self, path: Path):
-        try:
-            if self._wait_until_stable(path):
-                organize_file(path)
-        finally:
-            with self._lock:
-                self._in_progress.discard(path)
+    def _worker(self):
+        while True:
+            path = self._queue.get()
+            try:
+                if self._wait_until_stable(path):
+                    organize_file(path)
+            except Exception as e:
+                # Evita que el hilo muera de forma silenciosa e informa del fallo en stderr.
+                print(f"[Sortix Watcher Error] No se pudo organizar {path.name}: {e}", file=sys.stderr)
+            finally:
+                with self._lock:
+                    self._in_progress.discard(path)
+                self._queue.task_done()
 
     @staticmethod
     def _wait_until_stable(path: Path) -> bool:
@@ -60,7 +75,11 @@ class _DownloadEventHandler(FileSystemEventHandler):
             try:
                 size = path.stat().st_size
             except OSError:
-                return False
+                # En Windows, los archivos abiertos/descargando pueden lanzar violacion de acceso (OSError).
+                # Reiniciamos la cuenta de estabilidad y esperamos al siguiente tick en lugar de abortar.
+                stable_count = 0
+                time.sleep(STABLE_CHECK_INTERVAL)
+                continue
             if size == last_size and size > 0:
                 stable_count += 1
                 if stable_count >= STABLE_CHECKS_REQUIRED:

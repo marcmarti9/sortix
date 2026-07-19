@@ -41,7 +41,15 @@ def organize_file(path: Path) -> dict | None:
         return None
 
     category, relative_folder = resolve_destination_folder(path)
-    dest_dir = (HOME_DIR / relative_folder).expanduser()
+    
+    # Validacion defensiva de Path Traversal
+    from app.browser import resolve_safe_path
+    dest_dir = resolve_safe_path(relative_folder)
+    if dest_dir is None:
+        # Fallback a directorio seguro en caso de ruta invalida o maliciosa (ej. ../../etc)
+        dest_dir = (HOME_DIR / "Downloads" / "Other").resolve()
+        category = f"{category} (insegura redirigida)"
+        
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     destination = _unique_destination(dest_dir, path.name)

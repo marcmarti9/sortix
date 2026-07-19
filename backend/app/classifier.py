@@ -62,11 +62,16 @@ def _extract_docx_text(path: Path) -> str:
     try:
         with zipfile.ZipFile(path) as zf:
             with zf.open("word/document.xml") as f:
-                tree = ET.parse(f)
+                xml_content = f.read(MAX_CONTENT_CHARS)
+                # Prevencion de DoS / XML Entity Explosion (Billion Laughs / XXE):
+                # un docx legitimo nunca contiene DTDs (<!DOCTYPE o <!ENTITY).
+                if b"<!DOCTYPE" in xml_content or b"<!ENTITY" in xml_content:
+                    return ""
+                root = ET.fromstring(xml_content)
     except Exception:
         return ""
     ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
-    texts = [node.text for node in tree.iter("{%s}t" % ns["w"]) if node.text]
+    texts = [node.text for node in root.iter("{%s}t" % ns["w"]) if node.text]
     return " ".join(texts)[:MAX_CONTENT_CHARS]
 
 

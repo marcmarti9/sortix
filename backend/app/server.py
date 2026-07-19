@@ -3,13 +3,14 @@ que usa para controlar la Patrulla Activa, lanzar una organizacion manual
 y gestionar reglas personalizadas."""
 
 from pathlib import Path
+from urllib.parse import urlparse
 
 from flask import Flask, jsonify, request, send_from_directory
 
 from app import browser, db
 from app.organizer import organize_directory
 from app.watcher import PatrolManager
-from config.settings import DOWNLOADS_DIR, PROJECT_DIR
+from config.settings import DOWNLOADS_DIR, PROJECT_DIR, HOST, PORT
 
 FRONTEND_DIR = PROJECT_DIR / "frontend"
 
@@ -18,6 +19,24 @@ patrol = PatrolManager(DOWNLOADS_DIR)
 
 def create_app() -> Flask:
     app = Flask(__name__, static_folder=None)
+
+    @app.before_request
+    def check_csrf():
+        if request.method in ("POST", "DELETE", "PUT", "PATCH"):
+            origin = request.headers.get("Origin")
+            referer = request.headers.get("Referer")
+            host = request.headers.get("Host", "").lower()
+            
+            allowed_hosts = {host, f"{HOST}:{PORT}".lower(), "localhost:5000", "127.0.0.1:5000"}
+            
+            if origin:
+                parsed = urlparse(origin)
+                if parsed.netloc.lower() not in allowed_hosts:
+                    return jsonify({"error": "CSRF: Origen no permitido"}), 403
+            elif referer:
+                parsed = urlparse(referer)
+                if parsed.netloc.lower() not in allowed_hosts:
+                    return jsonify({"error": "CSRF: Referer no permitido"}), 403
 
     @app.get("/")
     def index():
@@ -66,6 +85,11 @@ def create_app() -> Flask:
         destination = (payload.get("destination") or "").strip()
         if not extension or not destination:
             return jsonify({"error": "extension y destination son obligatorios"}), 400
+        
+        # Validacion de Path Traversal / Seguridad
+        if browser.resolve_safe_path(destination) is None:
+            return jsonify({"error": "Ruta de destino no permitida o insegura"}), 400
+
         rule = db.add_rule(extension, destination)
         return jsonify(rule), 201
 
@@ -95,6 +119,10 @@ def create_app() -> Flask:
 
         if not name or not destination or not keywords:
             return jsonify({"error": "name, destination y keywords son obligatorios"}), 400
+
+        # Validacion de Path Traversal / Seguridad
+        if browser.resolve_safe_path(destination) is None:
+            return jsonify({"error": "Ruta de destino no permitida o insegura"}), 400
 
         topic = db.add_topic(name, destination, keywords)
         return jsonify(topic), 201
