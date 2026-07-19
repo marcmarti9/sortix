@@ -1,59 +1,38 @@
 # Sortix
 
-Organizador automatico de descargas, con interfaz tipo explorador de
-archivos. Vigila tu carpeta de Descargas y, en cuanto aparece un archivo
-nuevo, lo mueve a la carpeta que le corresponde:
+Automatic downloads organizer, with a file explorer-like interface. It monitors your Downloads folder and, as soon as a new file appears, moves it to its corresponding folder:
 
-- **Fotos** -> `Pictures/Descargas`
+- **Images** -> `Pictures/Descargas`
 - **Videos** -> `Videos/Descargas`
-- **Musica** -> `Music/Descargas`
-- **Comprimidos** -> `Downloads/Comprimidos`
-- **Instaladores** (.exe, .msi, .deb, .apk...) -> `Downloads/Instaladores`
-- **Cualquier otro documento** -> `Documents/Otros`
-- **Todo lo demas** -> `Downloads/Otros`
+- **Music** -> `Music/Descargas`
+- **Compressed** -> `Downloads/Comprimidos`
+- **Installers** (.exe, .msi, .deb, .apk...) -> `Downloads/Instaladores`
+- **Any other document** -> `Documents/Otros`
+- **Everything else** -> `Downloads/Otros`
 
-Y ademas, **para absolutamente cualquier cosa que quieras agrupar** (no solo
-la universidad: puede ser tu banco, el gimnasio, una app en concreto,
-facturas de un proveedor...), defines **Temas**: un nombre, una carpeta
-destino y unas palabras clave. Para los archivos PDF, DOCX y TXT, Sortix
-mira primero el nombre del archivo y, si no hay pistas claras, el contenido
-del documento buscando esas palabras clave. Si un documento no encaja con
-ningun Tema, va a `Documents/Otros` en vez de forzarlo dentro de uno.
+Additionally, **for absolutely anything you want to group** (not just university: it could be your bank, the gym, a specific app, invoices from a supplier...), you define **Topics**: a name, a destination folder, and a set of keywords. For PDF, DOCX, and TXT files, Sortix first looks at the file name and, if there are no clear clues, scans the document's content searching for those keywords. If a document does not match any Topic, it goes to `Documents/Otros` instead of forcing it into one.
 
-Ejemplo: creas el Tema "Banco" -> `Documents/Banco`, palabras clave
-`banco, extracto, iban`. La primera vez que se descargue un PDF de tu banco,
-Sortix crea la carpeta `Documents/Banco` sola y lo archiva ahi. Lo mismo
-para "Gimnasio", "Netflix", o lo que sea que se te ocurra.
+Example: you create the Topic "Bank" -> `Documents/Bank`, keywords `bank, statement, iban`. The first time a PDF is downloaded from your bank, Sortix creates the `Documents/Bank` folder on its own and archives it there. The same for "Gym", "Netflix", or whatever you can think of.
 
-Tambien puedes crear reglas mas simples por extension (ej. `.log` ->
-`Documents/Logs`), que siempre tienen prioridad sobre la clasificacion
-automatica.
+You can also create simpler rules by extension (e.g. `.log` -> `Documents/Logs`), which always take priority over automatic classification.
 
-Todas las rutas son relativas a tu carpeta personal (`~` / `C:\Users\tu_usuario`),
-asi que funciona igual en Linux, Windows y Mac.
+All paths are relative to your home folder (`~` / `C:\Users\your_username`), so it works the same on Linux, Windows, and Mac.
 
-## Como se usa
+## How to use
 
-La idea es tocarlo una vez (crear tus Temas y reglas en Ajustes) y que a
-partir de ahi corra solo en segundo plano. La interfaz principal es un
-explorador de archivos: la barra lateral tiene Descargas, las categorias
-base y tus Temas; al hacer click en cualquiera ves su contenido real, con
-breadcrumbs para moverte entre carpetas. Arriba a la derecha: el interruptor
-de **Patrulla Activa**, el boton **Organizar ahora** (para lo que ya haya en
-Descargas), el selector de **idioma** (ES/EN), el interruptor de **tema claro/oscuro** (con animaciones de transición circulares) y el icono de engranaje para abrir **Ajustes** (Temas y reglas).
+The idea is to set it up once (create your Topics and rules in Settings) and then let it run in the background. The main interface is a file explorer: the sidebar has Downloads, the base categories, and your Topics; clicking any of them shows its actual content, with breadcrumbs to navigate between folders. Top right: the **Active Patrol** toggle, the **Organize Now** button (for files already in Downloads), the **language** selector (ES/EN), the **light/dark theme** button (with smooth circular transitions), and the gear icon to open **Settings** (Topics and rules).
 
-La primera vez que la abres, si no tienes ningun Tema ni regla, se abre
-Ajustes solo para que definas los tuyos.
+The first time you open it, if you have no Topics or rules, Settings will open automatically for you to define yours.
 
-## Estructura del proyecto
+## Project structure
 
 ```
-backend/    servidor Python (Flask + watchdog) que vigila y organiza
-frontend/   interfaz web (explorador de archivos) para gestionar Temas/reglas
-database/   esquema y base de datos SQLite (temas, reglas, historial, ajustes)
+backend/    Python server (Flask + watchdog) that monitors and organizes
+frontend/   web interface (file explorer) to manage Topics/rules
+database/   SQLite schema and database (topics, rules, history, settings)
 ```
 
-## Uso manual (para probarlo)
+## Manual run (for testing)
 
 ```bash
 cd backend
@@ -62,74 +41,58 @@ python3 -m venv .venv
 ./.venv/bin/python main.py
 ```
 
-Abre http://127.0.0.1:5000 en el navegador.
+Open http://127.0.0.1:5000 in your browser.
 
-Configuracion opcional en `backend/.env` (copia `backend/.env.example`):
-`HOST`, `PORT`, `DOWNLOADS_DIR` (si tu carpeta de descargas no es la estandar).
+Optional configuration in `backend/.env` (copy `backend/.env.example`):
+`HOST`, `PORT`, `DOWNLOADS_DIR` (if your downloads folder is not the standard one).
 
-## Instalar como servicio en segundo plano (recomendado)
+## Install as a background service (recommended)
 
-Para que Sortix vigile Descargas siempre, sin tener que abrir nada a mano:
+To keep Sortix watching Downloads always, without having to launch anything manually:
 
-**Linux (systemd, servicio de usuario):**
+**Linux (systemd user service):**
 
 ```bash
 cd backend/deploy
 ./install_linux.sh
 ```
 
-Arranca con tu sesion y sigue corriendo en segundo plano. Para quitarlo:
-`./uninstall_linux.sh`. Para que siga activo incluso sin sesion iniciada:
-`sudo loginctl enable-linger $USER`.
+Starts with your session and runs in the background. To remove it: `./uninstall_linux.sh`. To keep it active even without an active session: `sudo loginctl enable-linger $USER`.
 
-**Windows (Tarea Programada, sin ventana):**
+**Windows (Scheduled Task, without window):**
 
 ```powershell
 cd backend\deploy
 powershell -ExecutionPolicy Bypass -File install_windows.ps1
 ```
 
-Para quitarlo: `powershell -ExecutionPolicy Bypass -File uninstall_windows.ps1`.
+To remove it: `powershell -ExecutionPolicy Bypass -File uninstall_windows.ps1`.
 
-**macOS (LaunchDaemon, arranca con el sistema):**
+**macOS (LaunchDaemon, starts with the system):**
 
 ```bash
 cd backend/deploy
 ./install_macos.sh
 ```
 
-Pide tu contrasena (sudo) porque se registra para arrancar con el propio
-sistema, no solo al iniciar sesion. Para quitarlo: `./uninstall_macos.sh`.
+Asks for your password (sudo) because it registers to start with the system, not just on login. To remove it: `./uninstall_macos.sh`.
 
-En los tres casos, una vez instalado, sigue abriendo http://127.0.0.1:5000
-cuando quieras encender/apagar la patrulla o tocar tus Temas/reglas — el
-servicio de fondo se limita a escuchar ahi, no hace falta lanzar nada mas.
+In all three cases, once installed, just open http://127.0.0.1:5000 when you want to toggle the patrol or adjust your Topics/rules — the background service listens there, no need to run anything else.
 
-## Compartir con mas gente
+## Sharing with others
 
-El proyecto no tiene ninguna ruta ni usuario hardcodeado: cada persona que lo
-clona y ejecuta el instalador de su sistema (Linux/Windows/macOS, arriba)
-tiene su propia instalacion, con su propia base de datos, sus propios
-Temas/reglas y vigilando su propia carpeta de Descargas. Nada se comparte
-entre instalaciones.
+The project does not have any hardcoded paths or usernames: anyone who clones it and runs their system's installer (Linux/Windows/macOS) gets their own standalone installation, with their own database, their own Topics/rules, and watching their own Downloads folder. Nothing is shared between installations.
 
-Para que alguien lo use solo necesita:
+To get someone else started, they just need:
 
 ```bash
-git clone <la-url-de-tu-repo>
+git clone <your-repo-url>
 cd sortix/backend/deploy
-./install_linux.sh   # o install_windows.ps1 / install_macos.sh segun su SO
+./install_linux.sh   # or install_windows.ps1 / install_macos.sh depending on their OS
 ```
 
-Y desde cero, sin tocar nada mas, ya organiza fotos/videos/musica/comprimidos/
-instaladores/documentos por tipo. Los Temas personalizados (banco, gimnasio,
-apps...) se anaden despues desde la propia interfaz si quieren.
+And from scratch, without touching anything else, it already organizes photos/videos/music/compressed/installers/documents by type. Custom Topics (bank, gym, apps...) can be added later from the interface.
 
-## Anadir/quitar categorias base
+## Add/remove base categories
 
-Los Temas (banco, gimnasio, apps...) se gestionan desde la interfaz, en
-Ajustes — no hace falta tocar ningun fichero para eso. Solo para cambiar las
-categorias base (fotos, videos, documentos...) hay que editar
-`backend/config/categories.json`: que extensiones caen en cada una y en que
-carpeta se guardan. No hace falta reiniciar la base de datos para este
-cambio, solo reiniciar el servicio (o `main.py` si lo tienes abierto a mano).
+Topics (bank, gym, apps...) are managed from the interface under Settings — no need to touch any files. Base categories (photos, videos, documents...) can only be customized by editing `backend/config/categories.json`: which extensions fall into each, and which folder they are saved to. You don't need to reset the database for this change, just restart the service (or `main.py` if running manually).
