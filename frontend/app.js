@@ -19,6 +19,7 @@ const ICONS = {
     close: '<path d="M18 6 6 18M6 6l12 12"/>',
     trash: '<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6"/>',
     chevron: '<path d="m9 18 6-6-6-6"/>',
+    undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v1a4 4 0 0 1-4 4h-5"/>',
 };
 
 function svgIcon(name, extraClass) {
@@ -82,8 +83,24 @@ function showStatus(message, isError = false) {
     statusTimer = setTimeout(() => { statusMessageEl.textContent = ""; }, 6000);
 }
 
+// Si Sortix esta configurado con SORTIX_TOKEN (p.ej. expuesto en la LAN),
+// la API responde 401 hasta que el navegador presente el token. Se pide una
+// vez y se guarda en localStorage.
+function withToken(options) {
+    const token = localStorage.getItem("sortix_token");
+    if (!token) return options;
+    return { ...(options || {}), headers: { ...((options || {}).headers || {}), "X-Sortix-Token": token } };
+}
+
 async function fetchJSON(url, options) {
-    const res = await fetch(url, options);
+    let res = await fetch(url, withToken(options));
+    if (res.status === 401) {
+        const token = prompt("Esta instancia de Sortix esta protegida.\nIntroduce el token de acceso (SORTIX_TOKEN):");
+        if (token) {
+            localStorage.setItem("sortix_token", token.trim());
+            res = await fetch(url, withToken(options));
+        }
+    }
     if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `Error ${res.status}`);
@@ -356,6 +373,62 @@ ruleForm.addEventListener("submit", async (event) => {
     }
 });
 
+// ---- historial de movimientos + deshacer -----------------------------------
+
+const historyListEl = document.getElementById("history-list");
+
+function formatDate(sqlDate) {
+    if (!sqlDate) return "";
+    // SQLite guarda "YYYY-MM-DD HH:MM:SS" en UTC
+    const date = new Date(sqlDate.replace(" ", "T") + "Z");
+    if (Number.isNaN(date.getTime())) return sqlDate;
+    return date.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
+}
+
+async function refreshHistory() {
+    let moves;
+    try {
+        moves = await fetchJSON("/api/log?limit=50");
+    } catch (err) {
+        historyListEl.innerHTML = '<li class="empty">No se pudo cargar el historial.</li>';
+        return;
+    }
+    historyListEl.innerHTML = "";
+    if (moves.length === 0) {
+        historyListEl.innerHTML = '<li class="empty">Sortix aun no ha movido ningun archivo.</li>';
+        return;
+    }
+    for (const move of moves) {
+        const li = document.createElement("li");
+        if (move.undone_at) li.classList.add("undone");
+        li.innerHTML = `<div class="settings-item-main">
+            <strong>${escapeHtml(move.filename)}</strong>
+            <span class="muted">${escapeHtml(move.category)} &rarr; ${escapeHtml(move.destination)}</span>
+            <span class="keywords">${escapeHtml(formatDate(move.moved_at))}${move.undone_at ? " &middot; deshecho" : ""}</span>
+        </div>`;
+        if (!move.undone_at) {
+            const undoBtn = document.createElement("button");
+            undoBtn.className = "icon-btn";
+            undoBtn.innerHTML = svgIcon("undo");
+            undoBtn.title = "Deshacer: devolver el archivo a su carpeta de origen";
+            undoBtn.addEventListener("click", async () => {
+                undoBtn.disabled = true;
+                try {
+                    const result = await fetchJSON(`/api/log/${move.id}/undo`, { method: "POST" });
+                    showStatus(`"${result.filename}" devuelto a su carpeta de origen.`);
+                    await Promise.all([refreshHistory(), refreshStatus()]);
+                    if (currentPath !== null) await renderContent();
+                } catch (err) {
+                    undoBtn.disabled = false;
+                    showStatus(err.message || "No se pudo deshacer el movimiento.", true);
+                }
+            });
+            li.appendChild(undoBtn);
+        }
+        historyListEl.appendChild(li);
+    }
+}
+
 // ---- modal de ajustes --------------------------------------------------------
 
 document.getElementById("btn-settings").innerHTML = svgIcon("settings");
@@ -370,6 +443,7 @@ for (const tabBtn of document.querySelectorAll(".tab-btn")) {
         for (const p of document.querySelectorAll(".tab-panel")) p.hidden = true;
         tabBtn.classList.add("active");
         document.getElementById(`tab-${tabBtn.dataset.tab}`).hidden = false;
+        if (tabBtn.dataset.tab === "history") refreshHistory();
     });
 }
 

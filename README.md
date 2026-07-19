@@ -45,6 +45,34 @@ Descargas) y el icono de engranaje para abrir **Ajustes** (Temas y reglas).
 La primera vez que la abres, si no tienes ningun Tema ni regla, se abre
 Ajustes solo para que definas los tuyos.
 
+En Ajustes hay tambien una pestana **Historial** con los ultimos movimientos:
+si un archivo acabo donde no debia, el boton **Deshacer** lo devuelve a su
+carpeta de origen (sin pisar nada: si ya existe otro archivo con ese nombre,
+se restaura como "nombre (1).ext").
+
+## Privacidad y seguridad
+
+Sortix esta pensado para manejar documentos sensibles (extractos bancarios,
+facturas, contratos...), asi que:
+
+- **Todo es 100% local.** No hay llamadas a internet, ni telemetria, ni IA
+  en la nube: la clasificacion por contenido (PDF/DOCX/TXT) se hace leyendo
+  el archivo en tu propia maquina y no se guarda el contenido en ningun
+  sitio, solo el nombre y a donde se movio.
+- **Escucha solo en 127.0.0.1 por defecto**, y ademas valida las cabeceras
+  `Host` y `Origin` de cada peticion, de modo que una web maliciosa abierta
+  en tu navegador no puede hablar con la API (CSRF / DNS rebinding).
+- **Los destinos de reglas y Temas se validan**: siempre son carpetas
+  relativas a tu carpeta personal; rutas absolutas o con `..` se rechazan,
+  tanto al guardarlas como justo antes de mover cada archivo.
+- **Si expones Sortix a la red** (`HOST=0.0.0.0` en `.env`, p.ej. en una
+  Raspberry), es obligatorio definir `SORTIX_TOKEN` en `.env` — sin token el
+  servidor se niega a arrancar. La interfaz te pedira ese token la primera
+  vez. Ten en cuenta que el trafico es HTTP plano: usalo solo en redes de
+  confianza o detras de un proxy con TLS.
+- La base de datos (`database/sortix.db`) solo guarda tus Temas, reglas y el
+  historial de movimientos, y esta excluida de git junto con `.env`.
+
 ## Estructura del proyecto
 
 ```
@@ -65,7 +93,16 @@ python3 -m venv .venv
 Abre http://127.0.0.1:5000 en el navegador.
 
 Configuracion opcional en `backend/.env` (copia `backend/.env.example`):
-`HOST`, `PORT`, `DOWNLOADS_DIR` (si tu carpeta de descargas no es la estandar).
+`HOST`, `PORT`, `DOWNLOADS_DIR` (si tu carpeta de descargas no es la
+estandar) y `SORTIX_TOKEN` (ver Privacidad y seguridad).
+
+Para comprobar que todo funciona (usa un HOME y una BD temporales, no toca
+tus archivos):
+
+```bash
+cd backend
+./.venv/bin/python tests/test_all.py
+```
 
 ## Instalar como servicio en segundo plano (recomendado)
 

@@ -10,17 +10,43 @@ from config.settings import DB_PATH, SCHEMA_PATH
 def init_db() -> None:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with get_conn() as conn:
+        pass  # get_conn ya garantiza el esquema
+
+
+def _ensure_schema(conn: sqlite3.Connection) -> None:
+    """Crea las tablas si faltan. Se comprueba en cada conexion (un SELECT
+    trivial) para sobrevivir a que alguien borre o vacie sortix.db con el
+    servidor en marcha: la siguiente peticion lo regenera en vez de dar 500."""
+    required = {"rules", "moves_log", "settings", "topics"}
+    existing = {
+        row["name"]
+        for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+    }
+    if not required.issubset(existing):
         conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+    _migrate(conn)
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Migraciones para bases de datos creadas con esquemas anteriores."""
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(moves_log)")}
+    if "undone_at" not in columns:
+        conn.execute("ALTER TABLE moves_log ADD COLUMN undone_at TEXT")
 
 
 @contextmanager
 def get_conn():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 5000")
     try:
+        _ensure_schema(conn)
         yield conn
         conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 
@@ -76,11 +102,25 @@ def count_moves() -> int:
 
 
 def recent_moves(limit: int = 20) -> list[dict]:
+    limit = max(1, min(limit, 500))
     with get_conn() as conn:
         rows = conn.execute(
             "SELECT * FROM moves_log ORDER BY id DESC LIMIT ?", (limit,)
         ).fetchall()
         return [dict(r) for r in rows]
+
+
+def get_move(move_id: int) -> dict | None:
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM moves_log WHERE id = ?", (move_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def mark_move_undone(move_id: int) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE moves_log SET undone_at = datetime('now') WHERE id = ?", (move_id,)
+        )
 
 
 # ---- ajustes ----------------------------------------------------------------

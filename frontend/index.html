@@ -48,6 +48,7 @@
         <div id="settings-tabs">
             <button type="button" class="tab-btn active" data-tab="topics">Temas</button>
             <button type="button" class="tab-btn" data-tab="rules">Reglas por extension</button>
+            <button type="button" class="tab-btn" data-tab="history">Historial</button>
         </div>
 
         <section id="tab-topics" class="tab-panel">
@@ -87,6 +88,14 @@
 
                 <button type="submit">Anadir regla</button>
             </form>
+        </section>
+
+        <section id="tab-history" class="tab-panel" hidden>
+            <p class="hint">
+                Ultimos movimientos de Sortix. Si un archivo acabo donde no
+                debia, pulsa &laquo;Deshacer&raquo; y volvera a su carpeta de origen.
+            </p>
+            <ul id="history-list" class="settings-list history"></ul>
         </section>
     </dialog>
 

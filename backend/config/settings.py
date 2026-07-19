@@ -39,6 +39,10 @@ DOWNLOADS_DIR = Path(_downloads_override).expanduser() if _downloads_override el
 
 HOME_DIR = Path.home()
 
+# Token compartido para la API (cabecera X-Sortix-Token). Opcional mientras
+# Sortix escuche solo en 127.0.0.1; obligatorio si se expone HOST a la red.
+API_TOKEN = _env.get("SORTIX_TOKEN", "").strip()
+
 # Extensiones de archivos temporales/parciales de navegadores: se ignoran.
 IGNORED_SUFFIXES = {".crdownload", ".part", ".tmp", ".download", ".partial"}
 
