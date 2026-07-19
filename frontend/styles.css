@@ -743,3 +743,162 @@ input:focus-visible {
     font-size: 0.72rem;
     color: var(--color-keywords);
 }
+
+/* ---- settings tabs overflow (many tabs now) ---- */
+
+#settings-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.tab-btn {
+    flex-shrink: 0;
+}
+
+/* ---- simulate dialog ---- */
+
+.simulate-dialog {
+    width: min(520px, 90vw);
+    max-height: 80vh;
+    background-color: var(--bg-modal);
+    color: var(--color-text);
+    border: 1px solid var(--border-modal);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.simulate-dialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.55);
+}
+
+.simulate-close-btn {
+    margin-top: 16px;
+    background-color: var(--color-brand);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 14px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: filter 0.2s;
+}
+
+.simulate-close-btn:hover {
+    filter: brightness(0.9);
+}
+
+/* ---- statistics dashboard ---- */
+
+.stats-big-number {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 24px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border-modal);
+}
+
+.stats-number {
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: var(--color-brand);
+    line-height: 1;
+}
+
+.stats-label {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+}
+
+#stats-categories,
+#stats-activity {
+    margin-bottom: 20px;
+}
+
+#stats-categories h3,
+#stats-activity h3 {
+    font-size: 0.95rem;
+    margin: 0 0 12px;
+    color: var(--color-text-active);
+}
+
+/* Category bar chart */
+
+.stats-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.stats-bar-label {
+    flex-shrink: 0;
+    width: 100px;
+    font-size: 0.8rem;
+    color: var(--color-text);
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stats-bar-track {
+    flex: 1;
+    height: 18px;
+    background-color: var(--bg-item-hover);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.stats-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+    min-width: 2px;
+}
+
+.stats-bar-value {
+    flex-shrink: 0;
+    width: 40px;
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    font-weight: 600;
+}
+
+/* Activity chart (daily bars) */
+
+.stats-activity-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 100px;
+    padding: 0 2px;
+}
+
+.stats-day-bar {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: 100%;
+    min-width: 3px;
+}
+
+.stats-day-fill {
+    width: 100%;
+    border-radius: 2px 2px 0 0;
+    transition: height 0.4s ease;
+    min-height: 2px;
+}
+
+.stats-activity-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 0.7rem;
+    color: var(--color-keywords);
+}

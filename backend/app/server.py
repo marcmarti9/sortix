@@ -9,9 +9,9 @@ from urllib.parse import urlparse
 from flask import Flask, jsonify, request, send_from_directory
 
 from app import browser, db, security
-from app.organizer import organize_directory, undo_move
+from app.organizer import organize_directory, resolve_destination_folder, undo_move
 from app.watcher import PatrolManager
-from config.settings import DOWNLOADS_DIR, PROJECT_DIR, HOST, PORT
+from config.settings import DOWNLOADS_DIR, IGNORED_SUFFIXES, PROJECT_DIR, HOST, PORT
 
 logger = logging.getLogger("sortix.server")
 
@@ -189,9 +189,38 @@ def create_app() -> Flask:
         db.set_setting("patrol_active", "1" if patrol.is_active() else "0")
         return jsonify({"active": patrol.is_active()})
 
+    @app.post("/api/simulate")
+    def simulate():
+        """Dry-run: classify every file in DOWNLOADS_DIR without moving."""
+        results = []
+        if DOWNLOADS_DIR.exists():
+            for entry in sorted(DOWNLOADS_DIR.iterdir()):
+                if not entry.is_file() or entry.suffix.lower() in IGNORED_SUFFIXES:
+                    continue
+                category, relative_folder, _rename = resolve_destination_folder(entry)
+                dest_dir = security.safe_destination_dir(relative_folder)
+                results.append({
+                    "filename": entry.name,
+                    "current_path": str(entry),
+                    "would_move_to": str(dest_dir / entry.name) if dest_dir else None,
+                    "category": category,
+                })
+        return jsonify(results)
+
     @app.post("/api/organize-now")
     def organize_now():
         moved = organize_directory(DOWNLOADS_DIR)
+        # Also organize files from all active watched folders
+        try:
+            watched = db.list_watched_folders()
+            for wf in watched:
+                if not wf["active"]:
+                    continue
+                folder_path = Path(wf["folder_path"])
+                if folder_path.exists() and folder_path.is_dir():
+                    moved.extend(organize_directory(folder_path))
+        except Exception:
+            logger.debug("watched folders not available yet, skipping")
         return jsonify({"moved": len(moved), "items": moved})
 
     @app.get("/api/rules")
@@ -307,6 +336,31 @@ def create_app() -> Flask:
         return jsonify({
             "duplicate_action": db.get_setting("duplicate_action", "suffix")
         })
+
+    @app.get("/api/watched-folders")
+    def get_watched_folders():
+        return jsonify(db.list_watched_folders())
+
+    @app.post("/api/watched-folders")
+    def add_watched_folder():
+        payload = request.get_json(silent=True) or {}
+        folder_path = (payload.get("folder_path") or "").strip()
+        if not folder_path:
+            return jsonify({"error": "folder_path es obligatorio"}), 400
+        resolved = browser.resolve_safe_path(folder_path)
+        if resolved is None:
+            return jsonify({"error": "ruta no permitida o insegura"}), 400
+        result = db.add_watched_folder(str(resolved))
+        return jsonify(result), 201
+
+    @app.delete("/api/watched-folders/<int:folder_id>")
+    def remove_watched_folder(folder_id: int):
+        db.delete_watched_folder(folder_id)
+        return "", 204
+
+    @app.get("/api/statistics")
+    def get_statistics():
+        return jsonify(db.get_statistics())
 
     @app.get("/api/duplicates")
     def get_duplicates():

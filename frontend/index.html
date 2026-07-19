@@ -24,6 +24,7 @@
                     <span class="slider"></span>
                 </label>
                 <button type="button" id="btn-organize" data-i18n="organize_btn">Organizar ahora</button>
+                <button type="button" id="btn-simulate" class="icon-btn" data-i18n-title="simulate_title" title="Simular organización"></button>
                 <select id="lang-select" class="lang-select" title="Idioma / Language">
                     <option value="es">ES</option>
                     <option value="en">EN</option>
@@ -62,6 +63,8 @@
             <button type="button" class="tab-btn" data-tab="rules" data-i18n="tab_rules">Reglas por extension</button>
             <button type="button" class="tab-btn" data-tab="history" data-i18n="tab_history">Historial</button>
             <button type="button" class="tab-btn" data-tab="duplicates" data-i18n="tab_duplicates">Deduplicar</button>
+            <button type="button" class="tab-btn" data-tab="watched" data-i18n="tab_watched">Carpetas vigiladas</button>
+            <button type="button" class="tab-btn" data-tab="stats" data-i18n="tab_stats">Estadísticas</button>
             <button type="button" class="tab-btn" data-tab="maintenance" data-i18n="tab_maintenance">Mantenimiento</button>
             <button type="button" class="tab-btn" data-tab="general" data-i18n="tab_general">General</button>
         </div>
@@ -181,6 +184,36 @@
             </form>
             <div class="maintenance-actions" style="margin-top: 15px; display: flex; gap: 10px; align-items: center;">
                 <button type="button" id="btn-run-maintenance" data-i18n="run_maintenance_btn">Ejecutar mantenimiento ahora</button>
+            </div>
+        </section>
+
+        <section id="tab-watched" class="tab-panel" hidden>
+            <p class="hint" data-i18n="watched_hint">
+                Añade carpetas adicionales que Sortix organizará al pulsar «Organizar ahora».
+            </p>
+            <ul id="watched-folders-list" class="settings-list"></ul>
+            <form id="watched-form" class="settings-form">
+                <label for="watched-folder-path" data-i18n="watched_folder_label">Ruta de la carpeta</label>
+                <input type="text" id="watched-folder-path" data-i18n-placeholder="watched_folder_placeholder" placeholder="ej. /home/user/Desktop" required>
+                <button type="submit" data-i18n="add_watched_btn">Añadir carpeta</button>
+            </form>
+        </section>
+
+        <section id="tab-stats" class="tab-panel" hidden>
+            <p class="hint" data-i18n="stats_hint">
+                Resumen de la actividad de Sortix.
+            </p>
+            <div id="stats-total" class="stats-big-number">
+                <span class="stats-number" id="stats-total-count">0</span>
+                <span class="stats-label" data-i18n="stats_total_label">archivos organizados en total</span>
+            </div>
+            <div id="stats-categories">
+                <h3 data-i18n="stats_top_categories">Categorías principales</h3>
+                <div id="stats-categories-chart"></div>
+            </div>
+            <div id="stats-activity">
+                <h3 data-i18n="stats_activity_title">Actividad (últimos 30 días)</h3>
+                <div id="stats-activity-chart"></div>
             </div>
         </section>
     </dialog>

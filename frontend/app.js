@@ -124,7 +124,38 @@ const TRANSLATIONS = {
         status_maintenance_delete_error: "No se pudo eliminar la regla de mantenimiento.",
         status_maintenance_running: "Ejecutando mantenimiento...",
         status_maintenance_run_done: "Mantenimiento completado: {count} archivo(s) limpiado(s).",
-        status_maintenance_run_error: "No se pudo ejecutar el mantenimiento."
+        status_maintenance_run_error: "No se pudo ejecutar el mantenimiento.",
+
+        // Simulate
+        simulate_title: "Simular organización",
+        status_simulating: "Simulando...",
+        simulate_modal_title: "Resultado de la simulación",
+        simulate_no_changes: "No se moverían archivos.",
+        simulate_move_label: "se movería a",
+        simulate_close_btn: "Cerrar",
+        status_simulate_error: "No se pudo ejecutar la simulación.",
+
+        // Watched folders
+        tab_watched: "Carpetas vigiladas",
+        watched_hint: "Añade carpetas adicionales que Sortix organizará al pulsar «Organizar ahora».",
+        watched_folder_label: "Ruta de la carpeta",
+        watched_folder_placeholder: "ej. /home/user/Desktop",
+        add_watched_btn: "Añadir carpeta",
+        watched_empty: "No hay carpetas vigiladas configuradas.",
+        delete_watched_title: "Eliminar carpeta vigilada",
+        status_watched_saved: "Carpeta vigilada añadida.",
+        status_watched_save_error: "No se pudo añadir la carpeta.",
+        status_watched_deleted: "Carpeta vigilada eliminada.",
+        status_watched_delete_error: "No se pudo eliminar la carpeta vigilada.",
+
+        // Statistics
+        tab_stats: "Estadísticas",
+        stats_hint: "Resumen de la actividad de Sortix.",
+        stats_total_label: "archivos organizados en total",
+        stats_top_categories: "Categorías principales",
+        stats_activity_title: "Actividad (últimos 30 días)",
+        stats_no_data: "Aún no hay datos suficientes.",
+        stats_load_error: "No se pudieron cargar las estadísticas."
     },
     en: {
         patrol_label: "Active Patrol",
@@ -247,7 +278,38 @@ const TRANSLATIONS = {
         status_maintenance_delete_error: "Could not delete maintenance rule.",
         status_maintenance_running: "Running maintenance...",
         status_maintenance_run_done: "Maintenance completed: {count} file(s) cleaned up.",
-        status_maintenance_run_error: "Could not run maintenance."
+        status_maintenance_run_error: "Could not run maintenance.",
+
+        // Simulate
+        simulate_title: "Simulate organization",
+        status_simulating: "Simulating...",
+        simulate_modal_title: "Simulation results",
+        simulate_no_changes: "No files would be moved.",
+        simulate_move_label: "would move to",
+        simulate_close_btn: "Close",
+        status_simulate_error: "Could not run simulation.",
+
+        // Watched folders
+        tab_watched: "Watched Folders",
+        watched_hint: "Add additional folders that Sortix will organize when you click \"Organize now\".",
+        watched_folder_label: "Folder path",
+        watched_folder_placeholder: "e.g. /home/user/Desktop",
+        add_watched_btn: "Add folder",
+        watched_empty: "No watched folders configured.",
+        delete_watched_title: "Delete watched folder",
+        status_watched_saved: "Watched folder added.",
+        status_watched_save_error: "Could not add folder.",
+        status_watched_deleted: "Watched folder removed.",
+        status_watched_delete_error: "Could not remove watched folder.",
+
+        // Statistics
+        tab_stats: "Statistics",
+        stats_hint: "Summary of Sortix activity.",
+        stats_total_label: "total files organized",
+        stats_top_categories: "Top Categories",
+        stats_activity_title: "Activity (last 30 days)",
+        stats_no_data: "Not enough data yet.",
+        stats_load_error: "Could not load statistics."
     }
 };
 
@@ -340,6 +402,9 @@ const ICONS = {
     trash: '<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6"/>',
     chevron: '<path d="m9 18 6-6-6-6"/>',
     undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v1a4 4 0 0 1-4 4h-5"/>',
+    simulate: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+    eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+    chart: '<path d="M18 20V10M12 20V4M6 20v-6"/>',
 };
 
 function svgIcon(name, extraClass) {
@@ -397,6 +462,9 @@ const ruleForm = document.getElementById("rule-form");
 const maintenanceListEl = document.getElementById("maintenance-list");
 const maintenanceForm = document.getElementById("maintenance-form");
 const btnRunMaintenance = document.getElementById("btn-run-maintenance");
+const simulateBtn = document.getElementById("btn-simulate");
+const watchedListEl = document.getElementById("watched-folders-list");
+const watchedForm = document.getElementById("watched-form");
 
 let statusTimer = null;
 function showStatus(message, isError = false) {
@@ -602,6 +670,62 @@ organizeBtn.addEventListener("click", async () => {
         organizeBtn.disabled = false;
     }
 });
+
+// ---- simulación (dry run) ---------------------------------------------------
+
+if (simulateBtn) {
+    simulateBtn.innerHTML = svgIcon("eye");
+    simulateBtn.addEventListener("click", async () => {
+        simulateBtn.disabled = true;
+        showStatus(t("status_simulating"));
+        try {
+            const data = await fetchJSON("/api/simulate", { method: "POST" });
+            showSimulateResults(data);
+        } catch (err) {
+            showStatus(err.message || t("status_simulate_error"), true);
+        } finally {
+            simulateBtn.disabled = false;
+        }
+    });
+}
+
+function showSimulateResults(data) {
+    // Remove any existing simulate modal
+    const existing = document.getElementById("simulate-modal");
+    if (existing) existing.remove();
+
+    const moves = Array.isArray(data) ? data : [];
+
+    const dialog = document.createElement("dialog");
+    dialog.id = "simulate-modal";
+    dialog.className = "simulate-dialog";
+
+    let listHtml;
+    if (moves.length === 0) {
+        listHtml = `<p class="hint">${t("simulate_no_changes")}</p>`;
+    } else {
+        listHtml = `<ul class="settings-list" style="max-height: 320px;">${moves.map(m => {
+            const filename = m.filename || "";
+            const dest = m.would_move_to || "";
+            return `<li><div class="settings-item-main"><strong>${escapeHtml(filename)}</strong><span class="muted">${t("simulate_move_label")} ${escapeHtml(dest)}</span></div></li>`;
+        }).join("")}</ul>`;
+    }
+
+    dialog.innerHTML = `
+        <div id="settings-header">
+            <h2>${t("simulate_modal_title")}</h2>
+            <button type="button" class="icon-btn" id="btn-close-simulate">${svgIcon("close")}</button>
+        </div>
+        <p class="hint" style="margin-bottom: 6px; font-weight: 600; color: var(--color-text);">${moves.length} ${currentLang === "es" ? "archivo(s)" : "file(s)"}</p>
+        ${listHtml}
+        <button type="button" class="simulate-close-btn" id="btn-dismiss-simulate">${t("simulate_close_btn")}</button>
+    `;
+
+    document.body.appendChild(dialog);
+    dialog.querySelector("#btn-close-simulate").addEventListener("click", () => { dialog.close(); dialog.remove(); });
+    dialog.querySelector("#btn-dismiss-simulate").addEventListener("click", () => { dialog.close(); dialog.remove(); });
+    dialog.showModal();
+}
 
 // ---- ajustes: temas --------------------------------------------------------
 
@@ -971,6 +1095,146 @@ if (btnRunMaintenance) {
     });
 }
 
+// ---- carpetas vigiladas (multi-folder watch) --------------------------------
+
+async function refreshWatchedFolders() {
+    try {
+        const folders = await fetchJSON("/api/watched-folders");
+        watchedListEl.innerHTML = "";
+        if (!folders || folders.length === 0) {
+            watchedListEl.innerHTML = `<li class="empty">${t("watched_empty")}</li>`;
+            return;
+        }
+        for (const folder of folders) {
+            const li = document.createElement("li");
+            const path = folder.folder_path || "";
+            li.innerHTML = `<div class="settings-item-main">
+                <strong>${escapeHtml(path)}</strong>
+            </div>`;
+            const delBtn = document.createElement("button");
+            delBtn.className = "icon-btn danger";
+            delBtn.innerHTML = svgIcon("trash");
+            delBtn.title = t("delete_watched_title");
+            delBtn.addEventListener("click", async () => {
+                try {
+                    await fetchJSON(`/api/watched-folders/${folder.id}`, { method: "DELETE" });
+                    await refreshWatchedFolders();
+                    showStatus(t("status_watched_deleted"));
+                } catch (err) {
+                    showStatus(err.message || t("status_watched_delete_error"), true);
+                }
+            });
+            li.appendChild(delBtn);
+            watchedListEl.appendChild(li);
+        }
+    } catch (err) {
+        watchedListEl.innerHTML = `<li class="empty">${t("watched_empty")}</li>`;
+    }
+}
+
+if (watchedForm) {
+    watchedForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const path = document.getElementById("watched-folder-path").value.trim();
+        if (!path) return;
+        try {
+            await fetchJSON("/api/watched-folders", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ folder_path: path }),
+            });
+            watchedForm.reset();
+            await refreshWatchedFolders();
+            showStatus(t("status_watched_saved"));
+        } catch (err) {
+            showStatus(err.message || t("status_watched_save_error"), true);
+        }
+    });
+}
+
+// ---- estadísticas (statistics dashboard) ------------------------------------
+
+const CHART_COLORS = [
+    "#4c6bf5", "#7c4dff", "#00bcd4", "#4caf50", "#ff9800",
+    "#e91e63", "#009688", "#ff5722", "#3f51b5", "#8bc34a"
+];
+
+async function refreshStatistics() {
+    const totalEl = document.getElementById("stats-total-count");
+    const catChart = document.getElementById("stats-categories-chart");
+    const actChart = document.getElementById("stats-activity-chart");
+    if (!totalEl || !catChart || !actChart) return;
+
+    try {
+        const data = await fetchJSON("/api/statistics");
+
+        // Total count
+        const total = data.total_organized || 0;
+        totalEl.textContent = total.toLocaleString();
+
+        // Top categories bar chart
+        const categories = data.by_category || [];
+        catChart.innerHTML = "";
+        if (categories.length === 0) {
+            catChart.innerHTML = `<p class="hint">${t("stats_no_data")}</p>`;
+        } else {
+            const maxCount = Math.max(...categories.map(cat => cat.c || 0), 1);
+            categories.forEach((cat, i) => {
+                const name = cat.category || "";
+                const count = cat.c || 0;
+                const pct = Math.round((count / maxCount) * 100);
+                const color = CHART_COLORS[i % CHART_COLORS.length];
+                const row = document.createElement("div");
+                row.className = "stats-bar-row";
+                row.innerHTML = `
+                    <span class="stats-bar-label">${escapeHtml(name)}</span>
+                    <div class="stats-bar-track">
+                        <div class="stats-bar-fill" style="width: ${pct}%; background-color: ${color};"></div>
+                    </div>
+                    <span class="stats-bar-value">${count}</span>
+                `;
+                catChart.appendChild(row);
+            });
+        }
+
+        // Activity chart (last 30 days)
+        const activity = data.by_day || [];
+        actChart.innerHTML = "";
+        if (activity.length === 0) {
+            actChart.innerHTML = `<p class="hint">${t("stats_no_data")}</p>`;
+        } else {
+            const maxDay = Math.max(...activity.map(d => d.c || 0), 1);
+            const chart = document.createElement("div");
+            chart.className = "stats-activity-bars";
+            activity.forEach((day, i) => {
+                const count = day.c || 0;
+                const heightPct = Math.max(Math.round((count / maxDay) * 100), 2);
+                const color = CHART_COLORS[i % CHART_COLORS.length];
+                const bar = document.createElement("div");
+                bar.className = "stats-day-bar";
+                bar.title = `${day.day || ""}: ${count}`;
+                bar.innerHTML = `<div class="stats-day-fill" style="height: ${heightPct}%; background-color: ${color};"></div>`;
+                chart.appendChild(bar);
+            });
+            actChart.appendChild(chart);
+
+            // Date labels (first, middle, last)
+            if (activity.length >= 2) {
+                const labels = document.createElement("div");
+                labels.className = "stats-activity-labels";
+                const firstDate = activity[0].day || "";
+                const lastDate = activity[activity.length - 1].day || "";
+                labels.innerHTML = `<span>${escapeHtml(firstDate)}</span><span>${escapeHtml(lastDate)}</span>`;
+                actChart.appendChild(labels);
+            }
+        }
+    } catch (err) {
+        if (totalEl) totalEl.textContent = "–";
+        if (catChart) catChart.innerHTML = `<p class="hint">${t("stats_load_error")}</p>`;
+        if (actChart) actChart.innerHTML = "";
+    }
+}
+
 // ---- deduplicación (buscar y limpiar duplicados) ----------------------------
 
 let duplicateGroups = [];
@@ -1146,6 +1410,8 @@ for (const tabBtn of document.querySelectorAll(".tab-btn")) {
         if (tabBtn.dataset.tab === "general") refreshGeneralSettings();
         if (tabBtn.dataset.tab === "duplicates") scanDuplicates();
         if (tabBtn.dataset.tab === "maintenance") refreshMaintenance();
+        if (tabBtn.dataset.tab === "watched") refreshWatchedFolders();
+        if (tabBtn.dataset.tab === "stats") refreshStatistics();
     });
 }
 
@@ -1164,7 +1430,7 @@ if (langSelect) {
         currentLang = e.target.value;
         localStorage.setItem("sortix_lang", currentLang);
         applyLanguage();
-        await Promise.all([refreshTopics(), refreshRules(), refreshMaintenance(), loadTree()]);
+        await Promise.all([refreshTopics(), refreshRules(), refreshMaintenance(), refreshWatchedFolders(), loadTree()]);
         renderBreadcrumbs();
         await renderContent();
     });
@@ -1178,7 +1444,7 @@ if (themeBtn) {
 async function init() {
     applyLanguage();
     updateThemeButton();
-    await Promise.all([refreshStatus(), loadTree(), refreshTopics(), refreshRules(), refreshGeneralSettings(), refreshMaintenance()]);
+    await Promise.all([refreshStatus(), loadTree(), refreshTopics(), refreshRules(), refreshGeneralSettings(), refreshMaintenance(), refreshWatchedFolders()]);
     renderBreadcrumbs();
     await renderContent();
     setInterval(refreshStatus, 5000);

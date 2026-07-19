@@ -393,4 +393,60 @@ finally:
 
 print("OK endpoints de duplicados y limpieza")
 
+# ---- carpetas vigiladas ----
+r = client.post("/api/watched-folders", json={"folder_path": "../../etc"})
+assert r.status_code == 400, (r.status_code, r.data)
+r = client.post("/api/watched-folders", json={})
+assert r.status_code == 400
+extra_dir = FAKE_HOME / "Escritorio"
+extra_dir.mkdir(exist_ok=True)
+r = client.post("/api/watched-folders", json={"folder_path": str(extra_dir)})
+assert r.status_code == 201, (r.status_code, r.data)
+wf = r.get_json()
+assert wf["folder_path"] == str(extra_dir.resolve()), wf
+r = client.get("/api/watched-folders")
+assert r.status_code == 200
+listed = r.get_json()
+assert any(f["id"] == wf["id"] for f in listed), listed
+
+# organize-now tambien recoge la carpeta vigilada
+(extra_dir / "foto_vigilada.jpg").write_bytes(b"jpg")
+r = client.post("/api/organize-now")
+assert r.status_code == 200
+assert not (extra_dir / "foto_vigilada.jpg").exists()
+
+r = client.delete(f"/api/watched-folders/{wf['id']}")
+assert r.status_code == 204
+r = client.get("/api/watched-folders")
+assert all(f["id"] != wf["id"] for f in r.get_json())
+print("OK carpetas vigiladas")
+
+# ---- simulacion (dry run) ----
+sim_file = downloads / "simulada.jpg"
+sim_file.write_bytes(b"jpg")
+try:
+    r = client.post("/api/simulate")
+    assert r.status_code == 200
+    sims = r.get_json()
+    assert isinstance(sims, list), sims
+    entry = next((s for s in sims if s["filename"] == "simulada.jpg"), None)
+    assert entry is not None, sims
+    assert entry["would_move_to"], entry
+    assert sim_file.exists()  # dry run: no mueve nada
+finally:
+    if sim_file.exists():
+        sim_file.unlink()
+print("OK simulacion dry-run")
+
+# ---- estadisticas ----
+r = client.get("/api/statistics")
+assert r.status_code == 200
+stats = r.get_json()
+assert set(stats) == {"total_organized", "by_category", "by_day"}, stats
+assert stats["total_organized"] >= 1, stats
+assert all({"category", "c"} <= set(row) for row in stats["by_category"]), stats
+days = [row["day"] for row in stats["by_day"]]
+assert days == sorted(days), days  # orden ascendente para el grafico
+print("OK estadisticas")
+
 print("\nTODAS LAS PRUEBAS PASARON")

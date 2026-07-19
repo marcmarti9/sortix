@@ -17,7 +17,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     """Crea las tablas si faltan. Se comprueba en cada conexion (un SELECT
     trivial) para sobrevivir a que alguien borre o vacie sortix.db con el
     servidor en marcha: la siguiente peticion lo regenera en vez de dar 500."""
-    required = {"rules", "moves_log", "settings", "topics", "maintenance_rules"}
+    required = {"rules", "moves_log", "settings", "topics", "maintenance_rules", "watched_folders"}
     existing = {
         row["name"]
         for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
@@ -66,6 +66,16 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 folder TEXT NOT NULL UNIQUE,
                 max_age_days INTEGER NOT NULL,
+                active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+
+    if "watched_folders" not in existing_tables:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS watched_folders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                folder_path TEXT NOT NULL UNIQUE,
                 active INTEGER NOT NULL DEFAULT 1,
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             )
@@ -222,22 +232,68 @@ def delete_topic(topic_id: int) -> None:
 def list_maintenance_rules() -> list[dict]:
     with get_conn() as conn:
         rows = conn.execute("SELECT * FROM maintenance_rules ORDER BY folder").fetchall()
-        return [dict(r) for r in rows]
+        result = []
+        for r in rows:
+            d = dict(r)
+            d["directory_path"] = d["folder"]
+            result.append(d)
+        return result
 
 
-def add_maintenance_rule(folder: str, max_age_days: int) -> dict:
+def add_maintenance_rule(folder: str, max_age_days: int, active: int = 1) -> dict:
     folder = folder.strip()
     with get_conn() as conn:
         conn.execute(
-            """INSERT INTO maintenance_rules (folder, max_age_days, active) VALUES (?, ?, 1)
-               ON CONFLICT(folder) DO UPDATE SET max_age_days = excluded.max_age_days""",
-            (folder, max_age_days),
+            """INSERT INTO maintenance_rules (folder, max_age_days, active) VALUES (?, ?, ?)
+               ON CONFLICT(folder) DO UPDATE SET max_age_days = excluded.max_age_days, active = excluded.active""",
+            (folder, max_age_days, active),
         )
         row = conn.execute("SELECT * FROM maintenance_rules WHERE folder = ?", (folder,)).fetchone()
-        return dict(row)
+        d = dict(row)
+        d["directory_path"] = d["folder"]
+        return d
 
 
 def delete_maintenance_rule(rule_id: int) -> None:
     with get_conn() as conn:
         conn.execute("DELETE FROM maintenance_rules WHERE id = ?", (rule_id,))
+
+
+# ---- watched folders ---------------------------------------------------------
+
+def list_watched_folders() -> list[dict]:
+    with get_conn() as conn:
+        rows = conn.execute("SELECT * FROM watched_folders ORDER BY folder_path").fetchall()
+        return [dict(r) for r in rows]
+
+
+def add_watched_folder(folder_path: str, active: int = 1) -> dict:
+    folder_path = folder_path.strip()
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO watched_folders (folder_path, active) VALUES (?, ?)
+               ON CONFLICT(folder_path) DO UPDATE SET active = excluded.active""",
+            (folder_path, active),
+        )
+        row = conn.execute("SELECT * FROM watched_folders WHERE folder_path = ?", (folder_path,)).fetchone()
+        return dict(row)
+
+
+def delete_watched_folder(folder_id: int) -> None:
+    with get_conn() as conn:
+        conn.execute("DELETE FROM watched_folders WHERE id = ?", (folder_id,))
+
+
+# ---- statistics dashboard ----------------------------------------------------
+
+def get_statistics() -> dict:
+    with get_conn() as conn:
+        total = conn.execute('SELECT COUNT(*) AS c FROM moves_log WHERE undone_at IS NULL').fetchone()['c']
+        by_category = conn.execute('SELECT category, COUNT(*) AS c FROM moves_log WHERE undone_at IS NULL GROUP BY category ORDER BY c DESC').fetchall()
+        by_day = conn.execute("SELECT date(moved_at) AS day, COUNT(*) AS c FROM moves_log WHERE undone_at IS NULL GROUP BY day ORDER BY day DESC LIMIT 30").fetchall()
+        return {
+            'total_organized': total,
+            'by_category': [dict(r) for r in by_category],
+            'by_day': [dict(r) for r in reversed(by_day)],
+        }
 
