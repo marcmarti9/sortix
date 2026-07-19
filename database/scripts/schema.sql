@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS moves_log (
     source TEXT NOT NULL,
     destination TEXT NOT NULL,
     category TEXT NOT NULL,
-    moved_at TEXT NOT NULL DEFAULT (datetime('now'))
+    moved_at TEXT NOT NULL DEFAULT (datetime('now')),
+    undone_at TEXT                 -- fecha en que se deshizo el movimiento, si se deshizo
 );
 
 CREATE TABLE IF NOT EXISTS settings (

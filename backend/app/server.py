@@ -1,16 +1,19 @@
 """Servidor web de Sortix: sirve la interfaz (frontend/) y expone la API
-que usa para controlar la Patrulla Activa, lanzar una organizacion manual
-y gestionar reglas personalizadas."""
+que usa para controlar la Patrulla Activa, lanzar una organizacion manual,
+gestionar reglas/Temas y deshacer movimientos del historial."""
 
+import logging
 from pathlib import Path
 from urllib.parse import urlparse
 
 from flask import Flask, jsonify, request, send_from_directory
 
-from app import browser, db
-from app.organizer import organize_directory
+from app import browser, db, security
+from app.organizer import organize_directory, undo_move
 from app.watcher import PatrolManager
 from config.settings import DOWNLOADS_DIR, PROJECT_DIR, HOST, PORT
+
+logger = logging.getLogger("sortix.server")
 
 FRONTEND_DIR = PROJECT_DIR / "frontend"
 
@@ -21,22 +24,30 @@ def create_app() -> Flask:
     app = Flask(__name__, static_folder=None)
 
     @app.before_request
-    def check_csrf():
-        if request.method in ("POST", "DELETE", "PUT", "PATCH"):
-            origin = request.headers.get("Origin")
-            referer = request.headers.get("Referer")
-            host = request.headers.get("Host", "").lower()
-            
-            allowed_hosts = {host, f"{HOST}:{PORT}".lower(), "localhost:5000", "127.0.0.1:5000"}
-            
-            if origin:
-                parsed = urlparse(origin)
-                if parsed.netloc.lower() not in allowed_hosts:
-                    return jsonify({"error": "CSRF: Origen no permitido"}), 403
-            elif referer:
-                parsed = urlparse(referer)
-                if parsed.netloc.lower() not in allowed_hosts:
-                    return jsonify({"error": "CSRF: Referer no permitido"}), 403
+    def guard_request():
+        rejection = security.check_request(request)
+        if rejection is not None:
+            payload, status = rejection
+            return jsonify(payload), status
+        return None
+
+    @app.after_request
+    def privacy_headers(response):
+        # las respuestas de la API contienen nombres y rutas de archivos
+        # personales: que ni el navegador ni proxies las cacheen.
+        if request.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        return response
+
+    @app.errorhandler(Exception)
+    def handle_unexpected(exc):
+        from werkzeug.exceptions import HTTPException
+        if isinstance(exc, HTTPException):
+            return exc
+        logger.exception("error inesperado atendiendo %s", request.path)
+        return jsonify({"error": "error interno de Sortix"}), 500
 
     @app.get("/")
     def index():
@@ -81,15 +92,12 @@ def create_app() -> Flask:
     @app.post("/api/rules")
     def create_rule():
         payload = request.get_json(silent=True) or {}
-        extension = (payload.get("extension") or "").strip()
-        destination = (payload.get("destination") or "").strip()
-        if not extension or not destination:
-            return jsonify({"error": "extension y destination son obligatorios"}), 400
-        
-        # Validacion de Path Traversal / Seguridad
-        if browser.resolve_safe_path(destination) is None:
-            return jsonify({"error": "Ruta de destino no permitida o insegura"}), 400
-
+        extension = security.valid_extension(payload.get("extension") or "")
+        destination = security.clean_destination(payload.get("destination") or "")
+        if extension is None:
+            return jsonify({"error": "extension invalida (solo letras y numeros, ej. pdf)"}), 400
+        if destination is None:
+            return jsonify({"error": "carpeta destino invalida: debe ser relativa a tu carpeta personal, ej. Documents/Facturas"}), 400
         rule = db.add_rule(extension, destination)
         return jsonify(rule), 201
 
@@ -103,6 +111,13 @@ def create_app() -> Flask:
         limit = request.args.get("limit", default=20, type=int)
         return jsonify(db.recent_moves(limit))
 
+    @app.post("/api/log/<int:move_id>/undo")
+    def undo_log_move(move_id: int):
+        result, error = undo_move(move_id)
+        if error:
+            return jsonify({"error": error}), 409
+        return jsonify(result)
+
     @app.get("/api/topics")
     def get_topics():
         return jsonify(db.list_topics())
@@ -111,14 +126,18 @@ def create_app() -> Flask:
     def create_topic():
         payload = request.get_json(silent=True) or {}
         name = (payload.get("name") or "").strip()
-        destination = (payload.get("destination") or "").strip()
+        destination = security.clean_destination(payload.get("destination") or "")
         keywords = payload.get("keywords") or []
         if isinstance(keywords, str):
             keywords = [k.strip() for k in keywords.split(",")]
         keywords = [k for k in keywords if k]
 
-        if not name or not destination or not keywords:
-            return jsonify({"error": "name, destination y keywords son obligatorios"}), 400
+        if not name or len(name) > 80:
+            return jsonify({"error": "el nombre del tema es obligatorio (max. 80 caracteres)"}), 400
+        if destination is None:
+            return jsonify({"error": "carpeta destino invalida: debe ser relativa a tu carpeta personal, ej. Documents/Banco"}), 400
+        if not keywords:
+            return jsonify({"error": "indica al menos una palabra clave"}), 400
 
         # Validacion de Path Traversal / Seguridad
         if browser.resolve_safe_path(destination) is None:

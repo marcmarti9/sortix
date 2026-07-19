@@ -525,7 +525,6 @@ button {
     margin-top: 12px;
     align-self: flex-start;
 }
-
 /* ---- language select ---- */
 .lang-select {
     background-color: var(--bg-surface);
@@ -546,7 +545,7 @@ button {
     color: var(--color-text-active);
 }
 
-.lang-select focus {
+.lang-select:focus {
     border-color: var(--color-brand);
 }
 
@@ -575,4 +574,56 @@ button {
   to {
     mask-size: 350vmax;
   }
+}
+
+/* ---- historial ---- */
+
+.settings-list.history {
+    max-height: 340px;
+}
+
+.settings-list li.undone {
+    opacity: 0.45;
+}
+
+.settings-list li .icon-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* ---- detalles ---- */
+
+.tree-item,
+.crumb,
+.tile,
+.tab-btn,
+.icon-btn,
+#toolbar-actions button,
+.settings-form button[type="submit"] {
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+button:focus-visible,
+input:focus-visible {
+    outline: 2px solid #4c6bf5;
+    outline-offset: 1px;
+}
+
+.settings-form input:focus {
+    border-color: #4c6bf5;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #2e2e3a;
+    border-radius: 5px;
+    border: 2px solid #101014;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #3a3a48;
 }

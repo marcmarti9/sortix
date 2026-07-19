@@ -39,6 +39,22 @@ DOWNLOADS_DIR = Path(_downloads_override).expanduser() if _downloads_override el
 
 HOME_DIR = Path.home()
 
+# Token compartido para la API (cabecera X-Sortix-Token). Opcional mientras
+# Sortix escuche solo en 127.0.0.1; obligatorio si se expone HOST a la red.
+API_TOKEN = _env.get("SORTIX_TOKEN", "").strip()
+
+
+def _env_flag(name: str) -> bool:
+    return _env.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+# LLM local (Ollama) para nombrar carpetas de documentos que no encajan en
+# ningun Tema ni subcategoria. Apagado por defecto: en equipos modestos no
+# se nota nada y todo sigue funcionando por reglas/patrones.
+LLM_ENABLED = _env_flag("SORTIX_LLM")
+LLM_URL = _env.get("SORTIX_LLM_URL", "http://127.0.0.1:11434")
+LLM_MODEL = _env.get("SORTIX_LLM_MODEL", "llama3.2")
+
 # Extensiones de archivos temporales/parciales de navegadores: se ignoran.
 IGNORED_SUFFIXES = {".crdownload", ".part", ".tmp", ".download", ".partial"}
 

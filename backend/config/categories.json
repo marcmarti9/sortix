@@ -1,23 +1,31 @@
 {
-  "_comment": "Maps file extensions (lowercase, without dot) to a category. 'folder' is relative to the user's home directory. Feel free to add or change entries.",
+  "_comment": "Maps file extensions (lowercase, without dot) to a category. 'folder' is relative to the user's home directory. 'subcategories' refine the destination based on patterns in the filename (case-insensitive, diacritic-insensitive complete words). Feel free to add or change entries.",
 
   "categories": {
     "images": {
       "label": "Images",
       "icon": "image",
-      "folder": "Pictures/Downloads",
-      "extensions": ["jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp", "tiff", "svg", "raw"]
+      "folder": "Pictures",
+      "extensions": ["jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp", "tiff", "svg", "raw"],
+      "subcategories": [
+        { "label": "Screenshots", "folder": "Pictures/Screenshots", "patterns": ["screenshot", "captura", "screen shot", "pantallazo"] },
+        { "label": "Wallpapers", "folder": "Pictures/Wallpapers", "patterns": ["wallpaper", "fondo de pantalla"] },
+        { "label": "Memes", "folder": "Pictures/Memes", "patterns": ["meme"] }
+      ]
     },
     "videos": {
       "label": "Videos",
       "icon": "video",
-      "folder": "Videos/Downloads",
-      "extensions": ["mp4", "mkv", "mov", "avi", "webm", "flv", "wmv", "m4v"]
+      "folder": "Videos",
+      "extensions": ["mp4", "mkv", "mov", "avi", "webm", "flv", "wmv", "m4v"],
+      "subcategories": [
+        { "label": "Screen recordings", "folder": "Videos/Screen recordings", "patterns": ["screen recording", "grabacion", "screencast"] }
+      ]
     },
     "music": {
       "label": "Music",
       "icon": "audio",
-      "folder": "Music/Downloads",
+      "folder": "Music",
       "extensions": ["mp3", "wav", "flac", "ogg", "m4a", "aac", "wma"]
     },
     "compressed": {
@@ -35,8 +43,15 @@
     "documents": {
       "label": "Documents",
       "icon": "document",
-      "folder": "Documents/Other",
-      "extensions": ["pdf", "doc", "docx", "odt", "txt", "ppt", "pptx", "xls", "xlsx", "csv", "rtf"]
+      "folder": "Documents/Unclassified",
+      "extensions": ["pdf", "doc", "docx", "odt", "txt", "ppt", "pptx", "xls", "xlsx", "csv", "rtf"],
+      "subcategories": [
+        { "label": "Invoices and receipts", "folder": "Documents/Invoices and receipts", "patterns": ["factura", "invoice", "recibo", "receipt"] },
+        { "label": "Resumes", "folder": "Documents/Resumes", "patterns": ["cv", "curriculum", "resume"] },
+        { "label": "Manuals and guides", "folder": "Documents/Manuals and guides", "patterns": ["manual", "guia", "guide", "instrucciones"] },
+        { "label": "Tickets and boarding passes", "folder": "Documents/Tickets and boarding passes", "patterns": ["entrada", "ticket", "billete", "boarding pass", "boarding"] },
+        { "label": "Contracts and agreements", "folder": "Documents/Contracts and agreements", "patterns": ["contrato", "contract", "acuerdo"] }
+      ]
     },
     "other": {
       "label": "Other",

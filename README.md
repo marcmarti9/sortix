@@ -11,78 +11,27 @@
 
 ---
 
+## Why Sortix?
+
+Your Downloads folder is where files go to die. Sortix gives every file a proper home the moment it finishes downloading — and because it routinely handles sensitive documents (bank statements, contracts, invoices, medical PDFs), it is built privacy-first from the ground up:
+
+* **100% Local:** No cloud, no telemetry, no network calls. Content-based classification scans PDF/DOCX/TXT files on your machine.
+* **Security Headers & Controls:** API responses contain sensitive names and paths, so they are protected with strictly configured headers (`Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`).
+* **Path Traversal Protection:** All rules and custom topics are sanitized to ensure destination directories remain strictly within your personal home directory (~).
+* **Anti-Loop Guards:** Defensive checks ensure the destination folder does not loop back into the watched downloads directory, avoiding endless watchdogs events.
+
+---
+
 ## Features
 
-* **Active Patrol (Real-time monitoring):** Instantly detects new files landing in your Downloads directory and schedules organization once download completes (safely handles temporary files like `.crdownload` or `.part`).
+* **Active Patrol (Real-time monitoring):** Instantly detects new files landing in your Downloads directory and schedules organization once download completes (safely handles temporary files like `.crdownload` or `.part` using thread-safe size stability checks).
 * **Topic Classification (NLP Content Scanning):** Scans file names and document contents (supports PDF, DOCX, and TXT) for user-defined keywords (e.g., "Bank", "Gym", "University") to classify and file them into targeted directories.
 * **Direct Extension Rules:** Simple rules mapping specific extensions directly to custom destinations (e.g., `.log` -> `Documents/Logs`).
+* **Desktop App Window:** Run Sortix inside its own native window (`backend/desktop.py`) using `pywebview` or your browser's `--app` mode (no browser address bar) to make it feel like a native application.
+* **Local LLM integration (Optional):** Supports offloading file naming and category sorting to a 100% local Ollama LLM (`llama3.2` or others) for documents that don't fit simple keyword rules.
 * **Bilingual File Explorer Interface:** A clean, responsive Web UI featuring a dynamic directory tree, navigation breadcrumbs, and detailed execution logs in both English and Spanish.
 * **Rich Theme System:** Toggle between fluid dark and light themes featuring hardware-accelerated circular transitions (utilizing the modern View Transitions API).
 * **Cross-Platform Background Services:** Native setup scripts to easily install Sortix as a system service on Linux (systemd), macOS (LaunchAgents), or Windows (Task Scheduler).
-* **Privacy-First & Self-Hosted:** Runs entirely locally on your machine with no external server requests, zero tracking, and no database exposure.
-
----
-
-## How It Works
-
-When a new file finishes downloading, it undergoes a prioritized organizational pipeline:
-
-```mermaid
-graph TD
-    A[New file in Downloads] --> B{Is file write complete?}
-    B -- No --> B
-    B -- Yes --> C{Custom extension rule exists?}
-    C -- Yes --> D[Move to custom destination]
-    C -- No --> E{Is file PDF, DOCX, or TXT?}
-    E -- Yes --> F{Matches Topic Keywords?}
-    F -- Yes --> G[Move to Topic folder]
-    F -- No --> H[Fallback Category folder]
-    E -- No --> H
-    H --> I[Move to default Category folder]
-```
-
-### Default Categorization Mapping
-
-If no custom rules or topic keyword hits are found, files fall back to standard category mapping:
-
-| Category | Target Folder (Relative to `~`) | Supported Extensions |
-| :--- | :--- | :--- |
-| **Images** | `Pictures/Downloads` | `jpg`, `jpeg`, `png`, `gif`, `webp`, `svg`, `raw`... |
-| **Videos** | `Videos/Downloads` | `mp4`, `mkv`, `mov`, `avi`, `webm`, `flv`, `wmv`... |
-| **Music** | `Music/Downloads` | `mp3`, `wav`, `flac`, `ogg`, `m4a`, `aac`, `wma`... |
-| **Compressed** | `Downloads/Compressed` | `zip`, `rar`, `7z`, `tar`, `gz`, `tgz`, `bz2`... |
-| **Installers** | `Downloads/Installers` | `exe`, `msi`, `deb`, `rpm`, `apk`, `dmg`, `pkg`... |
-| **Documents** | `Documents/Other` | `pdf`, `doc`, `docx`, `odt`, `txt`, `xlsx`, `csv`... |
-| **Other** | `Downloads/Other` | *Any extension not mapped above* |
-
----
-
-## Quick Start
-
-### Prerequisites
-* Python 3.10 or higher.
-
-### Manual Setup & Run
-
-1. Clone this repository:
-   ```bash
-   git clone <your-repo-url>
-   cd sortix
-   ```
-2. Initialize virtual environment and install dependencies:
-   ```bash
-   cd backend
-   python3 -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
-3. Start the application:
-   ```bash
-   python main.py
-   ```
-4. Open your browser and navigate to **http://127.0.0.1:5000** to toggle Active Patrol, view downloads, or customize rules.
-
-*Optional configuration:* Copy `backend/.env.example` to `backend/.env` and edit `HOST`, `PORT`, or `DOWNLOADS_DIR` if you use a non-standard downloads path.
 
 ---
 
@@ -120,8 +69,47 @@ cd backend/deploy
 * **Custom Topics:** Topics (e.g. "Work", "Finances") are managed directly in the Web UI under Settings -> Topics.
 * **Portability:** All folder paths resolved by Sortix are relative to the user's personal home directory (`~` / `C:\Users\username`), ensuring seamless compatibility and safety across different systems.
 
+### Advanced Settings (.env)
+
+Customize your service by creating a `backend/.env` file:
+* `SORTIX_HOST` / `SORTIX_PORT`: Customize Flask host and port.
+* `SORTIX_TOKEN`: Set a shared API token (verified via `X-Sortix-Token` header), which is mandatory if you bind the host beyond `127.0.0.1` (e.g. `0.0.0.0` for a LAN dashboard).
+* `SORTIX_LLM=1`: Enables the optional local LLM integration via Ollama.
+* `SORTIX_LLM_URL` / `SORTIX_LLM_MODEL`: Customize LLM connection (defaults to `http://127.0.0.1:11434` and `llama3.2`).
+
 ---
+
+## Testing
+
+Sortix includes a self-contained integration test suite that runs against a temporary database and workspace without touching your real files:
+
+```bash
+cd backend
+./.venv/bin/python tests/test_all.py
+```
+
+---
+
+## Project Structure
+
+```
+backend/    Python server (Flask + watchdog): watcher, classifier, API
+frontend/   Web UI (file-explorer style) for Topics, rules, history and translations
+database/   SQLite schema (Topics, rules, move history, settings)
+```
+
+---
+
+## Contributing
+
+Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
+The `main` branch is protected; all changes land via reviewed PRs.
+
+## Support the Project
+
+If Sortix saves you time, you can support development through **GitHub Sponsors** (button at the top of the repo). Thank you!
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+© Marc Martí Torralba

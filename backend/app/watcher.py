@@ -98,21 +98,24 @@ class PatrolManager:
     def __init__(self, directory: Path):
         self._directory = directory
         self._observer: Observer | None = None
+        self._lock = threading.Lock()
 
     def start(self) -> None:
-        if self.is_active():
-            return
-        self._directory.mkdir(parents=True, exist_ok=True)
-        observer = Observer()
-        observer.schedule(_DownloadEventHandler(), str(self._directory), recursive=False)
-        observer.start()
-        self._observer = observer
+        with self._lock:
+            if self.is_active():
+                return
+            self._directory.mkdir(parents=True, exist_ok=True)
+            observer = Observer()
+            observer.schedule(_DownloadEventHandler(), str(self._directory), recursive=False)
+            observer.start()
+            self._observer = observer
 
     def stop(self) -> None:
-        if self._observer is not None:
-            self._observer.stop()
-            self._observer.join(timeout=5)
-            self._observer = None
+        with self._lock:
+            if self._observer is not None:
+                self._observer.stop()
+                self._observer.join(timeout=5)
+                self._observer = None
 
     def is_active(self) -> bool:
         return self._observer is not None and self._observer.is_alive()
