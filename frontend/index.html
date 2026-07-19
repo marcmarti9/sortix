@@ -61,6 +61,7 @@
             <button type="button" class="tab-btn active" data-tab="topics" data-i18n="tab_topics">Temas</button>
             <button type="button" class="tab-btn" data-tab="rules" data-i18n="tab_rules">Reglas por extension</button>
             <button type="button" class="tab-btn" data-tab="history" data-i18n="tab_history">Historial</button>
+            <button type="button" class="tab-btn" data-tab="general" data-i18n="tab_general">General</button>
         </div>
 
         <section id="tab-topics" class="tab-panel">
@@ -80,6 +81,9 @@
                 <label for="topic-keywords" data-i18n="topic_keywords_label">Palabras clave (separadas por comas)</label>
                 <input type="text" id="topic-keywords" data-i18n-placeholder="topic_keywords_placeholder" placeholder="ej. banco, extracto, iban" required>
 
+                <label for="topic-rename-pattern" data-i18n="topic_rename_label">Patrón de renombrado (opcional)</label>
+                <input type="text" id="topic-rename-pattern" data-i18n-placeholder="topic_rename_placeholder" placeholder="ej. {YYYY}-{MM} - {OriginalName}.{ext}">
+
                 <button type="submit" data-i18n="add_topic_btn">Anadir tema</button>
             </form>
         </section>
@@ -98,6 +102,12 @@
                 <label for="rule-destination" data-i18n="rule_dest_label">Carpeta destino</label>
                 <input type="text" id="rule-destination" data-i18n-placeholder="rule_dest_placeholder" placeholder="ej. Documents/Facturas" required>
 
+                <label for="rule-rename-pattern" data-i18n="rule_rename_label">Patrón de renombrado (opcional)</label>
+                <input type="text" id="rule-rename-pattern" data-i18n-placeholder="rule_rename_placeholder" placeholder="ej. {Category}/{OriginalName}.{ext}">
+
+                <label for="rule-conditions" data-i18n="rule_conditions_label">Condiciones en formato JSON (opcional)</label>
+                <input type="text" id="rule-conditions" data-i18n-placeholder="rule_conditions_placeholder" placeholder='ej. [{"field": "name", "operator": "contains", "value": "factura"}]'>
+
                 <button type="submit" data-i18n="add_rule_btn">Anadir regla</button>
             </form>
         </section>
@@ -108,6 +118,22 @@
                 debia, pulsa &laquo;Deshacer&raquo; y volvera a su carpeta de origen.
             </p>
             <ul id="history-list" class="settings-list history"></ul>
+        </section>
+
+        <section id="tab-general" class="tab-panel" hidden>
+            <p class="hint" data-i18n="general_hint">
+                Ajustes globales del sistema para gestionar archivos duplicados e integraciones.
+            </p>
+            <form id="general-settings-form" class="settings-form">
+                <label for="duplicate-action-select" data-i18n="duplicate_action_label">Acción al encontrar archivos idénticos en destino</label>
+                <select id="duplicate-action-select" class="lang-select" style="width: 100%; margin-bottom: 15px; background-color: var(--bg-input); border: 1px solid var(--border-input); color: var(--color-input-text);">
+                    <option value="suffix" data-i18n="dup_opt_suffix">Añadir sufijo numérico, ej. archivo (1).pdf</option>
+                    <option value="skip" data-i18n="dup_opt_skip">Omitir movimiento (dejar en Descargas)</option>
+                    <option value="delete_source" data-i18n="dup_opt_delete_source">Eliminar archivo original (ya guardado)</option>
+                </select>
+                
+                <button type="submit" data-i18n="save_settings_btn">Guardar ajustes</button>
+            </form>
         </section>
     </dialog>
 

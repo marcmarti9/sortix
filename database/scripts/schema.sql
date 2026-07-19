@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS rules (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     extension TEXT NOT NULL,       -- sin punto, minusculas, ej. "pdf"
     destination TEXT NOT NULL,     -- ruta relativa a la carpeta personal, ej. "Documents/Facturas"
+    rename_pattern TEXT,
+    conditions TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -32,5 +34,6 @@ CREATE TABLE IF NOT EXISTS topics (
     name TEXT NOT NULL UNIQUE,      -- ej. "Banco", "Gimnasio", "Netflix"
     destination TEXT NOT NULL,      -- ruta relativa a la carpeta personal, ej. "Documents/Banco"
     keywords TEXT NOT NULL,         -- palabras clave separadas por comas
+    rename_pattern TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

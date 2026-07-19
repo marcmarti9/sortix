@@ -208,4 +208,45 @@ r = client.get("/api/browse?path=Downloads")
 assert r.status_code == 200
 print("OK browse confinado a HOME")
 
+# ---- renombrado dinamico, condiciones de reglas y acciones de duplicados ----
+# 1) Prueba de renombrado dinamico & condiciones
+r = client.post("/api/rules", json={
+    "extension": "*",
+    "destination": "Documents/CustomRules",
+    "rename_pattern": "Custom-{OriginalName}-{YYYY}.{ext}",
+    "conditions": [{"field": "name", "operator": "contains", "value": "remito"}]
+})
+assert r.status_code == 201, r.data
+
+(downloads / "mi_remito_luz.pdf").write_bytes(b"%PDF-1.4 fake")
+moved = organize_directory(downloads)
+moved_remito = [m for m in moved if m["filename"] == "mi_remito_luz.pdf"]
+assert len(moved_remito) == 1, moved
+dest = Path(moved_remito[0]["destination"])
+import datetime
+current_year = datetime.datetime.now().strftime("%Y")
+assert dest.name == f"Custom-mi_remito_luz-{current_year}.pdf", dest.name
+
+# 2) Prueba de duplicados: accion "delete_source"
+db.set_setting("duplicate_action", "delete_source")
+(downloads / "mi_remito_luz.pdf").write_bytes(b"%PDF-1.4 fake") # crear duplicado exacto en Downloads
+assert (downloads / "mi_remito_luz.pdf").exists()
+moved = organize_directory(downloads)
+moved_remito = [m for m in moved if m["filename"] == "mi_remito_luz.pdf"]
+assert len(moved_remito) == 0, moved
+assert not (downloads / "mi_remito_luz.pdf").exists() # se elimino el origen duplicado!
+
+# 3) Prueba de duplicados: accion "skip"
+db.set_setting("duplicate_action", "skip")
+(downloads / "mi_remito_luz.pdf").write_bytes(b"%PDF-1.4 fake") # crear duplicado exacto
+moved = organize_directory(downloads)
+moved_remito = [m for m in moved if m["filename"] == "mi_remito_luz.pdf"]
+assert len(moved_remito) == 0, moved
+assert (downloads / "mi_remito_luz.pdf").exists() # se omitio, el archivo sigue ahi
+
+# Limpieza
+db.set_setting("duplicate_action", "suffix")
+(downloads / "mi_remito_luz.pdf").unlink()
+print("OK renombrado dinamico, condiciones y duplicados")
+
 print("\nTODAS LAS PRUEBAS PASARON")

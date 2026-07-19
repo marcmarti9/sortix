@@ -94,11 +94,21 @@ def create_app() -> Flask:
         payload = request.get_json(silent=True) or {}
         extension = security.valid_extension(payload.get("extension") or "")
         destination = security.clean_destination(payload.get("destination") or "")
+        rename_pattern = (payload.get("rename_pattern") or "").strip() or None
+        conditions = payload.get("conditions")
+        if isinstance(conditions, (list, dict)):
+            import json
+            conditions = json.dumps(conditions)
+        elif isinstance(conditions, str):
+            conditions = conditions.strip() or None
+        else:
+            conditions = None
+
         if extension is None:
-            return jsonify({"error": "extension invalida (solo letras y numeros, ej. pdf)"}), 400
+            return jsonify({"error": "extension invalida (solo letras y numeros, ej. pdf, o * para comodin)"}), 400
         if destination is None:
             return jsonify({"error": "carpeta destino invalida: debe ser relativa a tu carpeta personal, ej. Documents/Facturas"}), 400
-        rule = db.add_rule(extension, destination)
+        rule = db.add_rule(extension, destination, rename_pattern, conditions)
         return jsonify(rule), 201
 
     @app.delete("/api/rules/<int:rule_id>")
@@ -128,6 +138,7 @@ def create_app() -> Flask:
         name = (payload.get("name") or "").strip()
         destination = security.clean_destination(payload.get("destination") or "")
         keywords = payload.get("keywords") or []
+        rename_pattern = (payload.get("rename_pattern") or "").strip() or None
         if isinstance(keywords, str):
             keywords = [k.strip() for k in keywords.split(",")]
         keywords = [k for k in keywords if k]
@@ -143,7 +154,7 @@ def create_app() -> Flask:
         if browser.resolve_safe_path(destination) is None:
             return jsonify({"error": "Ruta de destino no permitida o insegura"}), 400
 
-        topic = db.add_topic(name, destination, keywords)
+        topic = db.add_topic(name, destination, keywords, rename_pattern)
         return jsonify(topic), 201
 
     @app.delete("/api/topics/<int:topic_id>")
@@ -169,6 +180,23 @@ def create_app() -> Flask:
             "path": raw_path,
             "exists": True,
             "entries": browser.list_directory(resolved),
+        })
+
+    @app.get("/api/settings")
+    def get_settings():
+        return jsonify({
+            "duplicate_action": db.get_setting("duplicate_action", "suffix"),
+        })
+
+    @app.post("/api/settings")
+    def update_settings():
+        payload = request.get_json(silent=True) or {}
+        if "duplicate_action" in payload:
+            action = payload["duplicate_action"]
+            if action in ("suffix", "skip", "delete_source"):
+                db.set_setting("duplicate_action", action)
+        return jsonify({
+            "duplicate_action": db.get_setting("duplicate_action", "suffix")
         })
 
     return app

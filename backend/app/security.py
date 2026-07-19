@@ -67,6 +67,8 @@ def safe_destination_dir(relative_folder: str) -> Path | None:
 
 def valid_extension(raw: str) -> str | None:
     ext = (raw or "").strip().lower().lstrip(".")
+    if ext == "*":
+        return "*"
     return ext if _EXTENSION_RE.fullmatch(ext) else None
 
 

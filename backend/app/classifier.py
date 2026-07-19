@@ -7,10 +7,20 @@ import re
 import unicodedata
 import xml.etree.ElementTree as ET
 import zipfile
+import shutil
 from pathlib import Path
 
 from app import db, llm
 from config.settings import load_categories
+
+# Intentar importar dependencias de OCR (opcional)
+try:
+    import pytesseract
+    from PIL import Image
+    _OCR_AVAILABLE = shutil.which("tesseract") is not None
+except ImportError:
+    _OCR_AVAILABLE = False
+
 
 MAX_CONTENT_CHARS = 20_000  # suficiente para detectar el tema sin leer el pdf entero
 PDF_PAGES_TO_SCAN = 6
@@ -25,6 +35,8 @@ for _cat_name, _cat_data in _categories["categories"].items():
         _EXT_TO_CATEGORY[_ext.lower()] = _cat_name
 
 _CONTENT_EXTENSIONS = set(_categories["topic_matching"]["content_extensions"])
+if _OCR_AVAILABLE:
+    _CONTENT_EXTENSIONS.update({"png", "jpg", "jpeg", "tiff", "bmp", "gif"})
 
 
 def normalize(text: str) -> str:
@@ -83,6 +95,17 @@ def _extract_txt_text(path: Path) -> str:
         return ""
 
 
+def _extract_image_text(path: Path) -> str:
+    if not _OCR_AVAILABLE:
+        return ""
+    try:
+        img = Image.open(path)
+        text = pytesseract.image_to_string(img, timeout=10)
+        return text[:MAX_CONTENT_CHARS]
+    except Exception:
+        return ""
+
+
 def _extract_content(path: Path, ext: str) -> str:
     if ext == "pdf":
         return _extract_pdf_text(path)
@@ -90,6 +113,8 @@ def _extract_content(path: Path, ext: str) -> str:
         return _extract_docx_text(path)
     if ext == "txt":
         return _extract_txt_text(path)
+    if ext in ("png", "jpg", "jpeg", "tiff", "bmp", "gif"):
+        return _extract_image_text(path)
     return ""
 
 
@@ -167,7 +192,7 @@ def classify(path: Path) -> dict:
                 content = _extract_content(path, ext)
                 topic = _best_topic_for_text(content, topics)
             if topic:
-                return {"category": f"tema: {topic['name']}", "topic": topic["name"], "folder": topic["destination"]}
+                return {"category": f"tema: {topic['name']}", "topic": topic["name"], "folder": topic["destination"], "rename_pattern": topic.get("rename_pattern")}
 
     sub = _match_subcategory(category, path.stem)
     if sub:

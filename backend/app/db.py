@@ -33,6 +33,16 @@ def _migrate(conn: sqlite3.Connection) -> None:
     if "undone_at" not in columns:
         conn.execute("ALTER TABLE moves_log ADD COLUMN undone_at TEXT")
 
+    rules_cols = {row["name"] for row in conn.execute("PRAGMA table_info(rules)")}
+    if "rename_pattern" not in rules_cols:
+        conn.execute("ALTER TABLE rules ADD COLUMN rename_pattern TEXT")
+    if "conditions" not in rules_cols:
+        conn.execute("ALTER TABLE rules ADD COLUMN conditions TEXT")
+
+    topics_cols = {row["name"] for row in conn.execute("PRAGMA table_info(topics)")}
+    if "rename_pattern" not in topics_cols:
+        conn.execute("ALTER TABLE topics ADD COLUMN rename_pattern TEXT")
+
 
 @contextmanager
 def get_conn():
@@ -60,14 +70,16 @@ def list_rules() -> list[dict]:
         return [dict(r) for r in rows]
 
 
-def add_rule(extension: str, destination: str) -> dict:
+def add_rule(extension: str, destination: str, rename_pattern: str | None = None, conditions: str | None = None) -> dict:
     extension = extension.lower().lstrip(".").strip()
     destination = destination.strip().strip("/")
     with get_conn() as conn:
         conn.execute(
-            """INSERT INTO rules (extension, destination) VALUES (?, ?)
-               ON CONFLICT(extension) DO UPDATE SET destination = excluded.destination""",
-            (extension, destination),
+            """INSERT INTO rules (extension, destination, rename_pattern, conditions) VALUES (?, ?, ?, ?)
+               ON CONFLICT(extension) DO UPDATE SET destination = excluded.destination,
+                                                    rename_pattern = excluded.rename_pattern,
+                                                    conditions = excluded.conditions""",
+            (extension, destination, rename_pattern, conditions),
         )
         row = conn.execute("SELECT * FROM rules WHERE extension = ?", (extension,)).fetchone()
         return dict(row)
@@ -155,16 +167,17 @@ def list_topics() -> list[dict]:
         return [_topic_row_to_dict(r) for r in rows]
 
 
-def add_topic(name: str, destination: str, keywords: list[str]) -> dict:
+def add_topic(name: str, destination: str, keywords: list[str], rename_pattern: str | None = None) -> dict:
     name = name.strip()
     destination = destination.strip().strip("/")
     keywords_str = ",".join(k.strip() for k in keywords if k.strip())
     with get_conn() as conn:
         conn.execute(
-            """INSERT INTO topics (name, destination, keywords) VALUES (?, ?, ?)
+            """INSERT INTO topics (name, destination, keywords, rename_pattern) VALUES (?, ?, ?, ?)
                ON CONFLICT(name) DO UPDATE SET destination = excluded.destination,
-                                                keywords = excluded.keywords""",
-            (name, destination, keywords_str),
+                                                keywords = excluded.keywords,
+                                                rename_pattern = excluded.rename_pattern""",
+            (name, destination, keywords_str, rename_pattern),
         )
         row = conn.execute("SELECT * FROM topics WHERE name = ?", (name,)).fetchone()
         return _topic_row_to_dict(row)

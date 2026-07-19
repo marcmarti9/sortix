@@ -28,6 +28,21 @@ const TRANSLATIONS = {
         rule_dest_label: "Carpeta destino",
         rule_dest_placeholder: "ej. Documents/Facturas",
         add_rule_btn: "Añadir regla",
+        tab_general: "General",
+        general_hint: "Ajustes globales del sistema para gestionar archivos duplicados e integraciones.",
+        duplicate_action_label: "Acción al encontrar archivos idénticos en destino",
+        dup_opt_suffix: "Añadir sufijo numérico, ej. archivo (1).pdf",
+        dup_opt_skip: "Omitir movimiento (dejar en Descargas)",
+        dup_opt_delete_source: "Eliminar archivo original (ya guardado)",
+        save_settings_btn: "Guardar ajustes",
+        topic_rename_label: "Patrón de renombrado (opcional)",
+        topic_rename_placeholder: "ej. {YYYY}-{MM} - {OriginalName}.{ext}",
+        rule_rename_label: "Patrón de renombrado (opcional)",
+        rule_rename_placeholder: "ej. {Category}/{OriginalName}.{ext}",
+        rule_conditions_label: "Condiciones en formato JSON (opcional)",
+        rule_conditions_placeholder: 'ej. [{"field": "name", "operator": "contains", "value": "factura"}]',
+        status_settings_saved: "Ajustes del sistema guardados.",
+        status_settings_save_error: "No se pudo guardar la configuración.",
         
         home: "Inicio",
         downloads: "Descargas",
@@ -58,7 +73,16 @@ const TRANSLATIONS = {
         status_rule_save_error: "No se pudo guardar la regla.",
         theme_title: "Cambiar tema",
         
-        welcome_message: "Bienvenido: define tus primeros Temas (banco, gimnasio, apps...) y listo, Sortix se encarga solo a partir de ahora."
+        welcome_message: "Bienvenido: define tus primeros Temas (banco, gimnasio, apps...) y listo, Sortix se encarga solo a partir de ahora.",
+        
+        tab_history: "Historial",
+        history_hint: "Últimos movimientos de Sortix. Si un archivo acabó donde no debía, pulsa «Deshacer» y volverá a su carpeta de origen.",
+        history_empty: "Sortix aún no ha movido ningún archivo.",
+        history_load_error: "No se pudo cargar el historial.",
+        undo_title: "Deshacer: devolver el archivo a su carpeta de origen",
+        status_undone_done: '"{filename}" devuelto a su carpeta de origen.',
+        status_undo_error: "No se pudo deshacer el movimiento.",
+        history_undone_label: "deshecho"
     },
     en: {
         patrol_label: "Active Patrol",
@@ -85,6 +109,21 @@ const TRANSLATIONS = {
         rule_dest_label: "Destination folder",
         rule_dest_placeholder: "e.g. Documents/Invoices",
         add_rule_btn: "Add rule",
+        tab_general: "General",
+        general_hint: "Global system settings to manage duplicate files and integrations.",
+        duplicate_action_label: "Action when identical files exist in destination",
+        dup_opt_suffix: "Add numeric suffix, e.g. file (1).pdf",
+        dup_opt_skip: "Skip movement (keep in Downloads)",
+        dup_opt_delete_source: "Delete original file (already saved)",
+        save_settings_btn: "Save settings",
+        topic_rename_label: "Rename pattern (optional)",
+        topic_rename_placeholder: "e.g. {YYYY}-{MM} - {OriginalName}.{ext}",
+        rule_rename_label: "Rename pattern (optional)",
+        rule_rename_placeholder: "e.g. {Category}/{OriginalName}.{ext}",
+        rule_conditions_label: "Conditions in JSON format (optional)",
+        rule_conditions_placeholder: 'e.g. [{"field": "name", "operator": "contains", "value": "invoice"}]',
+        status_settings_saved: "System settings saved.",
+        status_settings_save_error: "Could not save configuration.",
         
         home: "Home",
         downloads: "Downloads",
@@ -115,7 +154,16 @@ const TRANSLATIONS = {
         status_rule_save_error: "Could not save rule.",
         theme_title: "Toggle theme",
         
-        welcome_message: "Welcome: define your first Topics (bank, gym, apps...) and that's it, Sortix takes care of the rest."
+        welcome_message: "Welcome: define your first Topics (bank, gym, apps...) and that's it, Sortix takes care of the rest.",
+        
+        tab_history: "History",
+        history_hint: "Recent Sortix movements. If a file ended up in the wrong place, click 'Undo' to return it to its source folder.",
+        history_empty: "Sortix has not moved any files yet.",
+        history_load_error: "Could not load history.",
+        undo_title: "Undo: return the file to its source folder",
+        status_undone_done: '"{filename}" returned to its source folder.',
+        status_undo_error: "Could not undo the movement.",
+        history_undone_label: "undone"
     }
 };
 
@@ -502,12 +550,13 @@ topicForm.addEventListener("submit", async (event) => {
     const name = document.getElementById("topic-name").value.trim();
     const destination = document.getElementById("topic-destination").value.trim();
     const keywords = document.getElementById("topic-keywords").value.trim();
+    const rename_pattern = document.getElementById("topic-rename-pattern").value.trim();
     if (!name || !destination || !keywords) return;
     try {
         await fetchJSON("/api/topics", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, destination, keywords }),
+            body: JSON.stringify({ name, destination, keywords, rename_pattern }),
         });
         topicForm.reset();
         await refreshTopics();
@@ -546,12 +595,26 @@ ruleForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const extension = document.getElementById("rule-extension").value.trim();
     const destination = document.getElementById("rule-destination").value.trim();
+    const rename_pattern = document.getElementById("rule-rename-pattern").value.trim();
+    let conditions = document.getElementById("rule-conditions").value.trim();
     if (!extension || !destination) return;
+    
+    if (conditions) {
+        try {
+            conditions = JSON.parse(conditions);
+        } catch (err) {
+            showStatus("Condiciones inválidas. Deben ser un formato JSON válido.", true);
+            return;
+        }
+    } else {
+        conditions = null;
+    }
+
     try {
         await fetchJSON("/api/rules", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ extension, destination }),
+            body: JSON.stringify({ extension, destination, rename_pattern, conditions }),
         });
         ruleForm.reset();
         await refreshRules();
@@ -578,43 +641,75 @@ async function refreshHistory() {
     try {
         moves = await fetchJSON("/api/log?limit=50");
     } catch (err) {
-        historyListEl.innerHTML = '<li class="empty">No se pudo cargar el historial.</li>';
+        historyListEl.innerHTML = `<li class="empty">${t("history_load_error")}</li>`;
         return;
     }
     historyListEl.innerHTML = "";
     if (moves.length === 0) {
-        historyListEl.innerHTML = '<li class="empty">Sortix aun no ha movido ningun archivo.</li>';
+        historyListEl.innerHTML = `<li class="empty">${t("history_empty")}</li>`;
         return;
     }
     for (const move of moves) {
         const li = document.createElement("li");
         if (move.undone_at) li.classList.add("undone");
+        const undoneText = move.undone_at ? ` &middot; ${t("history_undone_label")}` : "";
         li.innerHTML = `<div class="settings-item-main">
             <strong>${escapeHtml(move.filename)}</strong>
             <span class="muted">${escapeHtml(move.category)} &rarr; ${escapeHtml(move.destination)}</span>
-            <span class="keywords">${escapeHtml(formatDate(move.moved_at))}${move.undone_at ? " &middot; deshecho" : ""}</span>
+            <span class="keywords">${escapeHtml(formatDate(move.moved_at))}${undoneText}</span>
         </div>`;
         if (!move.undone_at) {
             const undoBtn = document.createElement("button");
             undoBtn.className = "icon-btn";
             undoBtn.innerHTML = svgIcon("undo");
-            undoBtn.title = "Deshacer: devolver el archivo a su carpeta de origen";
+            undoBtn.title = t("undo_title");
             undoBtn.addEventListener("click", async () => {
                 undoBtn.disabled = true;
                 try {
                     const result = await fetchJSON(`/api/log/${move.id}/undo`, { method: "POST" });
-                    showStatus(`"${result.filename}" devuelto a su carpeta de origen.`);
+                    showStatus(t("status_undone_done").replace("{filename}", result.filename));
                     await Promise.all([refreshHistory(), refreshStatus()]);
                     if (currentPath !== null) await renderContent();
                 } catch (err) {
                     undoBtn.disabled = false;
-                    showStatus(err.message || "No se pudo deshacer el movimiento.", true);
+                    showStatus(err.message || t("status_undo_error"), true);
                 }
             });
             li.appendChild(undoBtn);
         }
         historyListEl.appendChild(li);
     }
+}
+
+// ---- ajustes generales (duplicados) -------------------------------------------
+
+const generalSettingsForm = document.getElementById("general-settings-form");
+const duplicateActionSelect = document.getElementById("duplicate-action-select");
+
+async function refreshGeneralSettings() {
+    try {
+        const settings = await fetchJSON("/api/settings");
+        duplicateActionSelect.value = settings.duplicate_action || "suffix";
+    } catch (err) {
+        console.error("Error loading general settings:", err);
+    }
+}
+
+if (generalSettingsForm) {
+    generalSettingsForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const duplicate_action = duplicateActionSelect.value;
+        try {
+            await fetchJSON("/api/settings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ duplicate_action })
+            });
+            showStatus(t("status_settings_saved"));
+        } catch (err) {
+            showStatus(err.message || t("status_settings_save_error"), true);
+        }
+    });
 }
 
 // ---- modal de ajustes --------------------------------------------------------
@@ -632,6 +727,7 @@ for (const tabBtn of document.querySelectorAll(".tab-btn")) {
         tabBtn.classList.add("active");
         document.getElementById(`tab-${tabBtn.dataset.tab}`).hidden = false;
         if (tabBtn.dataset.tab === "history") refreshHistory();
+        if (tabBtn.dataset.tab === "general") refreshGeneralSettings();
     });
 }
 
@@ -664,7 +760,7 @@ if (themeBtn) {
 async function init() {
     applyLanguage();
     updateThemeButton();
-    await Promise.all([refreshStatus(), loadTree(), refreshTopics(), refreshRules()]);
+    await Promise.all([refreshStatus(), loadTree(), refreshTopics(), refreshRules(), refreshGeneralSettings()]);
     renderBreadcrumbs();
     await renderContent();
     setInterval(refreshStatus, 5000);
