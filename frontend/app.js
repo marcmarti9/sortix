@@ -95,7 +95,18 @@ const TRANSLATIONS = {
         undo_title: "Deshacer: devolver el archivo a su carpeta de origen",
         status_undone_done: '"{filename}" devuelto a su carpeta de origen.',
         status_undo_error: "No se pudo deshacer el movimiento.",
-        history_undone_label: "deshecho"
+        history_undone_label: "deshecho",
+        
+        tab_duplicates: "Deduplicar",
+        duplicates_hint: "Escanea y elimina archivos duplicados para liberar espacio.",
+        scan_duplicates_btn: "Buscar duplicados",
+        auto_select_btn: "Seleccionar todos menos uno",
+        clean_selected_btn: "Limpiar seleccionados",
+        scanning_message: "Buscando archivos duplicados...",
+        duplicates_empty: "No se han encontrado archivos duplicados.",
+        status_cleaning_done: "Limpieza completada: se eliminaron {count} archivo(s).",
+        status_cleaning_error: "No se pudieron eliminar algunos archivos.",
+        status_scanning_error: "No se pudieron buscar archivos duplicados."
     },
     en: {
         patrol_label: "Active Patrol",
@@ -189,7 +200,18 @@ const TRANSLATIONS = {
         undo_title: "Undo: return the file to its source folder",
         status_undone_done: '"{filename}" returned to its source folder.',
         status_undo_error: "Could not undo the movement.",
-        history_undone_label: "undone"
+        history_undone_label: "undone",
+        
+        tab_duplicates: "Deduplicate",
+        duplicates_hint: "Scan and delete duplicate files to free up space.",
+        scan_duplicates_btn: "Scan for duplicates",
+        auto_select_btn: "Auto-select all but one",
+        clean_selected_btn: "Clean Selected",
+        scanning_message: "Scanning for duplicate files...",
+        duplicates_empty: "No duplicate files found.",
+        status_cleaning_done: "Cleaning completed: {count} file(s) deleted.",
+        status_cleaning_error: "Could not delete some files.",
+        status_scanning_error: "Could not scan for duplicate files."
     }
 };
 
@@ -829,6 +851,154 @@ if (generalSettingsForm) {
     });
 }
 
+// ---- deduplicación (buscar y limpiar duplicados) ----------------------------
+
+let duplicateGroups = [];
+
+async function scanDuplicates() {
+    const spinner = document.getElementById("duplicates-loading");
+    const container = document.getElementById("duplicates-container");
+    const listEl = document.getElementById("duplicates-list");
+    const emptyMsg = document.getElementById("duplicates-empty-msg");
+    const btnAutoSelect = document.getElementById("btn-auto-select-duplicates");
+    const btnClean = document.getElementById("btn-clean-duplicates");
+
+    if (!spinner || !container || !listEl || !emptyMsg) return;
+
+    spinner.style.display = "block";
+    listEl.style.display = "none";
+    emptyMsg.style.display = "none";
+    if (btnAutoSelect) btnAutoSelect.disabled = true;
+    if (btnClean) btnClean.disabled = true;
+
+    try {
+        duplicateGroups = await fetchJSON("/api/duplicates");
+        listEl.innerHTML = "";
+
+        if (duplicateGroups.length === 0) {
+            emptyMsg.style.display = "block";
+        } else {
+            duplicateGroups.forEach((groupObj, groupIdx) => {
+                let files = [];
+                let sizeBytes = 0;
+                if (groupObj && Array.isArray(groupObj)) {
+                    files = groupObj;
+                    sizeBytes = files[0]?.size || 0;
+                } else if (groupObj && groupObj.files && Array.isArray(groupObj.files)) {
+                    files = groupObj.files;
+                    sizeBytes = groupObj.size_bytes || files[0]?.size || 0;
+                }
+
+                if (files.length === 0) return;
+
+                const groupDiv = document.createElement("div");
+                groupDiv.className = "duplicates-group";
+
+                const header = document.createElement("div");
+                header.className = "duplicates-group-header";
+                
+                const groupSizeStr = formatSize(sizeBytes);
+                const groupTitle = currentLang === "es" 
+                    ? `Grupo ${groupIdx + 1} (${groupSizeStr} cada uno)` 
+                    : `Group ${groupIdx + 1} (${groupSizeStr} each)`;
+                
+                header.innerHTML = `<strong>${groupTitle}</strong>`;
+                groupDiv.appendChild(header);
+
+                const itemsList = document.createElement("div");
+                itemsList.className = "duplicates-group-list";
+
+                files.forEach((file) => {
+                    const item = document.createElement("div");
+                    item.className = "duplicates-item";
+
+                    const cb = document.createElement("input");
+                    cb.type = "checkbox";
+                    cb.className = "duplicates-item-checkbox";
+                    cb.dataset.path = file.path;
+                    cb.addEventListener("change", updateCleanButtonState);
+
+                    const details = document.createElement("div");
+                    details.className = "duplicates-item-details";
+                    
+                    let formattedTime = file.mtime;
+                    if (formattedTime) {
+                        try {
+                            const date = new Date(formattedTime);
+                            formattedTime = date.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
+                        } catch (e) {}
+                    }
+
+                    details.innerHTML = `
+                        <span class="duplicates-item-name">${escapeHtml(file.name)}</span>
+                        <span class="duplicates-item-path">${escapeHtml(file.path)}</span>
+                        <span class="duplicates-item-meta">${formatSize(sizeBytes)} &middot; ${escapeHtml(formattedTime)}</span>
+                    `;
+
+                    item.appendChild(cb);
+                    item.appendChild(details);
+                    itemsList.appendChild(item);
+                });
+
+                groupDiv.appendChild(itemsList);
+                listEl.appendChild(groupDiv);
+            });
+            listEl.style.display = "flex";
+            if (btnAutoSelect) btnAutoSelect.disabled = false;
+        }
+    } catch (err) {
+        showStatus(t("status_scanning_error"), true);
+        emptyMsg.textContent = t("status_scanning_error");
+        emptyMsg.style.display = "block";
+    } finally {
+        spinner.style.display = "none";
+    }
+}
+
+function updateCleanButtonState() {
+    const btnClean = document.getElementById("btn-clean-duplicates");
+    if (!btnClean) return;
+    const checkedBoxes = document.querySelectorAll(".duplicates-item-checkbox:checked");
+    btnClean.disabled = checkedBoxes.length === 0;
+}
+
+function autoSelectDuplicates() {
+    const groups = document.querySelectorAll(".duplicates-group");
+    groups.forEach((group) => {
+        const checkboxes = group.querySelectorAll(".duplicates-item-checkbox");
+        checkboxes.forEach((cb, idx) => {
+            cb.checked = idx > 0;
+        });
+    });
+    updateCleanButtonState();
+}
+
+async function cleanSelectedDuplicates() {
+    const btnClean = document.getElementById("btn-clean-duplicates");
+    const checkedBoxes = document.querySelectorAll(".duplicates-item-checkbox:checked");
+    if (checkedBoxes.length === 0) return;
+
+    const filesToDelete = Array.from(checkedBoxes).map(cb => cb.dataset.path);
+    
+    if (btnClean) btnClean.disabled = true;
+    showStatus(currentLang === "es" ? "Eliminando duplicados..." : "Deleting duplicates...");
+
+    try {
+        const res = await fetchJSON("/api/duplicates/clean", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ files: filesToDelete }),
+        });
+        
+        const count = res.deleted !== undefined ? res.deleted : (res.cleaned !== undefined ? res.cleaned : filesToDelete.length);
+        showStatus(t("status_cleaning_done").replace("{count}", count));
+        await scanDuplicates();
+    } catch (err) {
+        showStatus(t("status_cleaning_error"), true);
+        if (btnClean) btnClean.disabled = false;
+    }
+}
+
 // ---- modal de ajustes --------------------------------------------------------
 
 document.getElementById("btn-settings").innerHTML = svgIcon("settings");
@@ -836,6 +1006,15 @@ document.getElementById("btn-close-settings").innerHTML = svgIcon("close");
 
 document.getElementById("btn-settings").addEventListener("click", () => openSettings());
 document.getElementById("btn-close-settings").addEventListener("click", () => settingsModal.close());
+
+const btnScan = document.getElementById("btn-scan-duplicates");
+if (btnScan) btnScan.addEventListener("click", scanDuplicates);
+
+const btnAutoSelect = document.getElementById("btn-auto-select-duplicates");
+if (btnAutoSelect) btnAutoSelect.addEventListener("click", autoSelectDuplicates);
+
+const btnClean = document.getElementById("btn-clean-duplicates");
+if (btnClean) btnClean.addEventListener("click", cleanSelectedDuplicates);
 
 for (const tabBtn of document.querySelectorAll(".tab-btn")) {
     tabBtn.addEventListener("click", () => {
@@ -845,6 +1024,7 @@ for (const tabBtn of document.querySelectorAll(".tab-btn")) {
         document.getElementById(`tab-${tabBtn.dataset.tab}`).hidden = false;
         if (tabBtn.dataset.tab === "history") refreshHistory();
         if (tabBtn.dataset.tab === "general") refreshGeneralSettings();
+        if (tabBtn.dataset.tab === "duplicates") scanDuplicates();
     });
 }
 

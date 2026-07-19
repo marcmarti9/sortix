@@ -20,6 +20,115 @@ FRONTEND_DIR = PROJECT_DIR / "frontend"
 patrol = PatrolManager(DOWNLOADS_DIR)
 
 
+def _get_scan_dirs():
+    dirs = set()
+    dirs.add(DOWNLOADS_DIR.resolve())
+    try:
+        from config.settings import load_categories
+        categories = load_categories()["categories"]
+        for cat in categories.values():
+            folder_str = cat.get("folder")
+            if folder_str:
+                from app.security import safe_destination_dir
+                resolved = safe_destination_dir(folder_str)
+                if resolved and resolved.exists():
+                    dirs.add(resolved.resolve())
+    except Exception:
+        pass
+    try:
+        for topic in db.list_topics():
+            folder_str = topic.get("destination")
+            if folder_str:
+                from app.security import safe_destination_dir
+                resolved = safe_destination_dir(folder_str)
+                if resolved and resolved.exists():
+                    dirs.add(resolved.resolve())
+    except Exception:
+        pass
+    return list(dirs)
+
+
+def _find_all_files(scan_dirs):
+    import os
+    from config.settings import IGNORED_SUFFIXES
+    files = []
+    seen_paths = set()
+    for root_dir in scan_dirs:
+        if not root_dir.exists() or not root_dir.is_dir():
+            continue
+        for root, dirs, filenames in os.walk(root_dir):
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            for f in filenames:
+                if f.startswith('.'):
+                    continue
+                if Path(f).suffix.lower() in IGNORED_SUFFIXES:
+                    continue
+                file_path = Path(root) / f
+                try:
+                    resolved = file_path.resolve()
+                    if resolved not in seen_paths and resolved.is_file():
+                        seen_paths.add(resolved)
+                        files.append(resolved)
+                except OSError:
+                    continue
+    return files
+
+
+def _scan_duplicates(files):
+    from datetime import datetime
+    from app.organizer import calculate_sha256
+    from config.settings import HOME_DIR
+    by_size = {}
+    for path in files:
+        try:
+            size = path.stat().st_size
+            by_size.setdefault(size, []).append(path)
+        except OSError:
+            continue
+            
+    duplicate_groups = {}
+    for size, paths in by_size.items():
+        if size == 0:
+            continue
+        if len(paths) < 2:
+            continue
+        for path in paths:
+            sha = calculate_sha256(path)
+            if sha:
+                try:
+                    rel_path = str(path.relative_to(HOME_DIR.resolve())).replace("\\", "/")
+                except ValueError:
+                    rel_path = str(path).replace("\\", "/")
+                
+                try:
+                    stat = path.stat()
+                    mtime_str = datetime.fromtimestamp(stat.st_mtime).isoformat(timespec="seconds")
+                except OSError:
+                    mtime_str = ""
+
+                entry = {
+                    "path": rel_path,
+                    "name": path.name,
+                    "mtime": mtime_str
+                }
+                duplicate_groups.setdefault(sha, {
+                    "hash": sha,
+                    "size_bytes": size,
+                    "files": []
+                })["files"].append(entry)
+
+    result = [
+        g for g in duplicate_groups.values()
+        if len(g["files"]) >= 2
+    ]
+    
+    for g in result:
+        g["files"].sort(key=lambda x: x["path"])
+        
+    result.sort(key=lambda g: g["size_bytes"], reverse=True)
+    return result
+
+
 def create_app() -> Flask:
     app = Flask(__name__, static_folder=None)
 
@@ -198,6 +307,45 @@ def create_app() -> Flask:
         return jsonify({
             "duplicate_action": db.get_setting("duplicate_action", "suffix")
         })
+
+    @app.get("/api/duplicates")
+    def get_duplicates():
+        scan_dirs = _get_scan_dirs()
+        all_files = _find_all_files(scan_dirs)
+        duplicates = _scan_duplicates(all_files)
+        return jsonify(duplicates)
+
+    @app.post("/api/duplicates/clean")
+    def clean_duplicates():
+        payload = request.get_json(silent=True)
+        if isinstance(payload, dict):
+            files_to_delete = payload.get("files") or []
+        elif isinstance(payload, list):
+            files_to_delete = payload
+        else:
+            files_to_delete = []
+
+        resolved_paths = []
+        for f_path in files_to_delete:
+            resolved = browser.resolve_safe_path(f_path)
+            if resolved is None:
+                return jsonify({"error": f"ruta no permitida: {f_path}"}), 400
+            
+            if resolved.exists():
+                if not resolved.is_file():
+                    return jsonify({"error": f"la ruta no es un archivo: {f_path}"}), 400
+                resolved_paths.append(resolved)
+
+        deleted_count = 0
+        for resolved_path in resolved_paths:
+            try:
+                resolved_path.unlink()
+                deleted_count += 1
+            except OSError as e:
+                logger.exception("Error unlinking file %s", resolved_path)
+                return jsonify({"error": f"no se pudo eliminar: {resolved_path.name}"}), 500
+        
+        return jsonify({"success": True, "deleted": deleted_count})
 
     return app
 

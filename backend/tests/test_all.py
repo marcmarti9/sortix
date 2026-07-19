@@ -249,4 +249,45 @@ db.set_setting("duplicate_action", "suffix")
 (downloads / "mi_remito_luz.pdf").unlink()
 print("OK renombrado dinamico, condiciones y duplicados")
 
+# ---- pruebas de endpoints de duplicados ----
+(downloads / "dup1.pdf").write_bytes(b"contenido_duplicado_123")
+(downloads / "dup2.pdf").write_bytes(b"contenido_duplicado_123")
+(downloads / "unico.pdf").write_bytes(b"contenido_unico_456")
+(downloads / "diferente_mismo_tamano.pdf").write_bytes(b"diferente_mismo_tamanx")
+
+try:
+    r = client.get("/api/duplicates")
+    assert r.status_code == 200
+    dups = r.get_json()
+    
+    group = next((g for g in dups if g["size_bytes"] == 23), None)
+    assert group is not None, dups
+    
+    files_in_group = [f["name"] for f in group["files"]]
+    assert "dup1.pdf" in files_in_group
+    assert "dup2.pdf" in files_in_group
+    assert "unico.pdf" not in files_in_group
+    assert "diferente_mismo_tamano.pdf" not in files_in_group
+    
+    r = client.post("/api/duplicates/clean", json=["../../etc/passwd"])
+    assert r.status_code == 400
+    
+    dup1_entry = next(f for f in group["files"] if f["name"] == "dup1.pdf")
+    dup1_rel_path = dup1_entry["path"]
+    
+    r = client.post("/api/duplicates/clean", json=[dup1_rel_path])
+    assert r.status_code == 200
+    assert r.get_json() == {"success": True, "deleted": 1}
+    
+    assert not (downloads / "dup1.pdf").exists()
+    assert (downloads / "dup2.pdf").exists()
+
+finally:
+    for fn in ("dup1.pdf", "dup2.pdf", "unico.pdf", "diferente_mismo_tamano.pdf"):
+        p = downloads / fn
+        if p.exists():
+            p.unlink()
+
+print("OK endpoints de duplicados y limpieza")
+
 print("\nTODAS LAS PRUEBAS PASARON")

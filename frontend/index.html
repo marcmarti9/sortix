@@ -61,6 +61,7 @@
             <button type="button" class="tab-btn active" data-tab="topics" data-i18n="tab_topics">Temas</button>
             <button type="button" class="tab-btn" data-tab="rules" data-i18n="tab_rules">Reglas por extension</button>
             <button type="button" class="tab-btn" data-tab="history" data-i18n="tab_history">Historial</button>
+            <button type="button" class="tab-btn" data-tab="duplicates" data-i18n="tab_duplicates">Deduplicar</button>
             <button type="button" class="tab-btn" data-tab="general" data-i18n="tab_general">General</button>
         </div>
 
@@ -137,6 +138,32 @@
                 
                 <button type="submit" data-i18n="save_settings_btn">Guardar ajustes</button>
             </form>
+        </section>
+
+        <section id="tab-duplicates" class="tab-panel" hidden>
+            <p class="hint" data-i18n="duplicates_hint">
+                Escanea y elimina archivos duplicados para liberar espacio.
+            </p>
+            
+            <div class="duplicates-actions" style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button type="button" id="btn-scan-duplicates" data-i18n="scan_duplicates_btn">Buscar duplicados</button>
+                <button type="button" id="btn-auto-select-duplicates" class="secondary-btn" data-i18n="auto_select_btn" disabled>Seleccionar todos menos uno</button>
+                <button type="button" id="btn-clean-duplicates" class="danger-btn" data-i18n="clean_selected_btn" disabled>Limpiar seleccionados</button>
+            </div>
+
+            <!-- Loading spinner -->
+            <div id="duplicates-loading" style="display: none; text-align: center; padding: 20px;">
+                <div class="spinner"></div>
+                <p data-i18n="scanning_message" style="margin-top: 10px; color: var(--color-text-muted);">Buscando archivos duplicados...</p>
+            </div>
+
+            <!-- Duplicate groups list -->
+            <div id="duplicates-container">
+                <div id="duplicates-empty-msg" class="hint" data-i18n="duplicates_empty" style="display: none; text-align: center; padding: 20px;">
+                    No se han encontrado archivos duplicados.
+                </div>
+                <div id="duplicates-list" style="display: flex; flex-direction: column; gap: 16px; max-height: 320px; overflow-y: auto; padding-right: 5px;"></div>
+            </div>
         </section>
     </dialog>
 
