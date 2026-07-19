@@ -39,8 +39,21 @@ const TRANSLATIONS = {
         topic_rename_placeholder: "ej. {YYYY}-{MM} - {OriginalName}.{ext}",
         rule_rename_label: "Patrón de renombrado (opcional)",
         rule_rename_placeholder: "ej. {Category}/{OriginalName}.{ext}",
-        rule_conditions_label: "Condiciones en formato JSON (opcional)",
-        rule_conditions_placeholder: 'ej. [{"field": "name", "operator": "contains", "value": "factura"}]',
+        rule_conditions_label: "Condiciones de activación (opcional)",
+        btn_add_condition: "+ Añadir condición",
+        cond_field_name: "Nombre de archivo",
+        cond_field_stem: "Nombre (sin extensión)",
+        cond_field_ext: "Extensión",
+        cond_field_size: "Tamaño (KB)",
+        cond_field_content: "Contenido de texto",
+        cond_op_contains: "Contiene",
+        cond_op_not_contains: "No contiene",
+        cond_op_equals: "Es igual a",
+        cond_op_starts_with: "Empieza con",
+        cond_op_ends_with: "Termina con",
+        cond_op_gt: "Mayor que",
+        cond_op_lt: "Menor que",
+        cond_value_placeholder: "Valor",
         status_settings_saved: "Ajustes del sistema guardados.",
         status_settings_save_error: "No se pudo guardar la configuración.",
         
@@ -120,8 +133,21 @@ const TRANSLATIONS = {
         topic_rename_placeholder: "e.g. {YYYY}-{MM} - {OriginalName}.{ext}",
         rule_rename_label: "Rename pattern (optional)",
         rule_rename_placeholder: "e.g. {Category}/{OriginalName}.{ext}",
-        rule_conditions_label: "Conditions in JSON format (optional)",
-        rule_conditions_placeholder: 'e.g. [{"field": "name", "operator": "contains", "value": "invoice"}]',
+        rule_conditions_label: "Activation conditions (optional)",
+        btn_add_condition: "+ Add condition",
+        cond_field_name: "File name",
+        cond_field_stem: "File name (no ext)",
+        cond_field_ext: "Extension",
+        cond_field_size: "Size (KB)",
+        cond_field_content: "Text content",
+        cond_op_contains: "Contains",
+        cond_op_not_contains: "Does not contain",
+        cond_op_equals: "Equals",
+        cond_op_starts_with: "Starts with",
+        cond_op_ends_with: "Ends with",
+        cond_op_gt: "Greater than",
+        cond_op_lt: "Less than",
+        cond_value_placeholder: "Value",
         status_settings_saved: "System settings saved.",
         status_settings_save_error: "Could not save configuration.",
         
@@ -569,6 +595,61 @@ topicForm.addEventListener("submit", async (event) => {
 
 // ---- ajustes: reglas por extension ------------------------------------------
 
+const conditionsContainer = document.getElementById("rule-conditions-container");
+const btnAddCondition = document.getElementById("btn-add-condition");
+
+function createConditionRow(data = {}) {
+    const row = document.createElement("div");
+    row.className = "condition-row";
+    row.style.display = "flex";
+    row.style.gap = "6px";
+    row.style.marginBottom = "6px";
+    row.style.width = "100%";
+    row.style.alignItems = "center";
+
+    row.innerHTML = `
+        <select class="cond-field lang-select" style="flex: 1.2; min-width: 80px; padding: 6px; background-color: var(--bg-input); border: 1px solid var(--border-input); color: var(--color-input-text); border-radius: 6px; font-size: 0.85rem;">
+            <option value="name">${t("cond_field_name")}</option>
+            <option value="stem">${t("cond_field_stem")}</option>
+            <option value="extension">${t("cond_field_ext")}</option>
+            <option value="size_kb">${t("cond_field_size")}</option>
+            <option value="content">${t("cond_field_content")}</option>
+        </select>
+        <select class="cond-operator lang-select" style="flex: 1; min-width: 80px; padding: 6px; background-color: var(--bg-input); border: 1px solid var(--border-input); color: var(--color-input-text); border-radius: 6px; font-size: 0.85rem;">
+            <option value="contains">${t("cond_op_contains")}</option>
+            <option value="not_contains">${t("cond_op_not_contains")}</option>
+            <option value="equals">${t("cond_op_equals")}</option>
+            <option value="starts_with">${t("cond_op_starts_with")}</option>
+            <option value="ends_with">${t("cond_op_ends_with")}</option>
+            <option value="gt">${t("cond_op_gt")}</option>
+            <option value="lt">${t("cond_op_lt")}</option>
+        </select>
+        <input type="text" class="cond-value" placeholder="${t("cond_value_placeholder")}" style="flex: 2; min-width: 100px; padding: 6px; background-color: var(--bg-input); border: 1px solid var(--border-input); color: var(--color-input-text); border-radius: 6px; font-size: 0.85rem;">
+        <button type="button" class="btn-remove-cond icon-btn danger" style="padding: 6px 10px; font-size: 0.95rem; border-radius: 6px; cursor: pointer; border: 1px solid var(--border-input); background: var(--bg-item-hover); color: var(--color-danger);">&times;</button>
+    `;
+
+    const fieldSel = row.querySelector(".cond-field");
+    const opSel = row.querySelector(".cond-operator");
+    const valInput = row.querySelector(".cond-value");
+    const removeBtn = row.querySelector(".btn-remove-cond");
+
+    if (data.field) fieldSel.value = data.field;
+    if (data.operator) opSel.value = data.operator;
+    if (data.value !== undefined) valInput.value = data.value;
+
+    removeBtn.addEventListener("click", () => {
+        row.remove();
+    });
+
+    conditionsContainer.appendChild(row);
+}
+
+if (btnAddCondition) {
+    btnAddCondition.addEventListener("click", () => {
+        createConditionRow();
+    });
+}
+
 async function refreshRules() {
     const rules = await fetchJSON("/api/rules");
     rulesListEl.innerHTML = "";
@@ -577,7 +658,36 @@ async function refreshRules() {
     }
     for (const rule of rules) {
         const li = document.createElement("li");
-        li.innerHTML = `<div class="settings-item-main"><strong>.${escapeHtml(rule.extension)}</strong> <span class="muted">&rarr; ${escapeHtml(rule.destination)}</span></div>`;
+        
+        let details = [];
+        if (rule.rename_pattern) {
+            details.push(`Renombrar: <code>${escapeHtml(rule.rename_pattern)}</code>`);
+        }
+        if (rule.conditions) {
+            try {
+                const conds = JSON.parse(rule.conditions);
+                if (conds && conds.length > 0) {
+                    const condStrs = conds.map(c => {
+                        const fieldName = t(`cond_field_${c.field}`) || c.field;
+                        const opName = t(`cond_op_${c.operator}`) || c.operator;
+                        return `${fieldName} ${opName.toLowerCase()} "${escapeHtml(c.value)}"`;
+                    });
+                    details.push(`Condiciones: ${condStrs.join(" AND ")}`);
+                }
+            } catch(e) {}
+        }
+        
+        const detailsStr = details.length > 0 
+            ? `<div class="rule-details" style="font-size: 0.75rem; margin-top: 4px; color: var(--color-text-muted);">${details.join(" | ")}</div>`
+            : "";
+            
+        li.innerHTML = `
+            <div class="settings-item-main" style="display: flex; flex-direction: column;">
+                <div><strong>.${escapeHtml(rule.extension)}</strong> <span class="muted">&rarr; ${escapeHtml(rule.destination)}</span></div>
+                ${detailsStr}
+            </div>
+        `;
+
         const delBtn = document.createElement("button");
         delBtn.className = "icon-btn danger";
         delBtn.innerHTML = svgIcon("trash");
@@ -596,27 +706,34 @@ ruleForm.addEventListener("submit", async (event) => {
     const extension = document.getElementById("rule-extension").value.trim();
     const destination = document.getElementById("rule-destination").value.trim();
     const rename_pattern = document.getElementById("rule-rename-pattern").value.trim();
-    let conditions = document.getElementById("rule-conditions").value.trim();
-    if (!extension || !destination) return;
     
-    if (conditions) {
-        try {
-            conditions = JSON.parse(conditions);
-        } catch (err) {
-            showStatus("Condiciones inválidas. Deben ser un formato JSON válido.", true);
-            return;
+    // Compilar condiciones visuales
+    const condRows = conditionsContainer.querySelectorAll(".condition-row");
+    const conditions = [];
+    for (const row of condRows) {
+        const field = row.querySelector(".cond-field").value;
+        const operator = row.querySelector(".cond-operator").value;
+        const value = row.querySelector(".cond-value").value.trim();
+        if (field && operator && value) {
+            conditions.push({ field, operator, value });
         }
-    } else {
-        conditions = null;
     }
+
+    if (!extension || !destination) return;
 
     try {
         await fetchJSON("/api/rules", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ extension, destination, rename_pattern, conditions }),
+            body: JSON.stringify({
+                extension,
+                destination,
+                rename_pattern,
+                conditions: conditions.length > 0 ? conditions : null
+            }),
         });
         ruleForm.reset();
+        conditionsContainer.innerHTML = "";
         await refreshRules();
         showStatus(t("status_rule_saved"));
     } catch (err) {

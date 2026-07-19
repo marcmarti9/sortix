@@ -105,8 +105,11 @@
                 <label for="rule-rename-pattern" data-i18n="rule_rename_label">Patrón de renombrado (opcional)</label>
                 <input type="text" id="rule-rename-pattern" data-i18n-placeholder="rule_rename_placeholder" placeholder="ej. {Category}/{OriginalName}.{ext}">
 
-                <label for="rule-conditions" data-i18n="rule_conditions_label">Condiciones en formato JSON (opcional)</label>
-                <input type="text" id="rule-conditions" data-i18n-placeholder="rule_conditions_placeholder" placeholder='ej. [{"field": "name", "operator": "contains", "value": "factura"}]'>
+                <label data-i18n="rule_conditions_label">Condiciones de activación (opcional)</label>
+                <div id="rule-conditions-container" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; width: 100%;"></div>
+                <button type="button" id="btn-add-condition" class="icon-btn" style="margin-bottom: 12px; align-self: flex-start; background-color: var(--bg-input); border: 1px solid var(--border-input); color: var(--color-text-active); padding: 5px 10px; font-size: 0.8rem; border-radius: 6px; cursor: pointer;">
+                    + Añadir condición
+                </button>
 
                 <button type="submit" data-i18n="add_rule_btn">Anadir regla</button>
             </form>
