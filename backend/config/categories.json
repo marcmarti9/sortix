@@ -1,53 +1,53 @@
 {
-  "_comment": "Mapea extensiones de archivo (en minusculas, sin punto) a una categoria. 'folder' es relativo a la carpeta personal del usuario. Anade o cambia entradas libremente.",
+  "_comment": "Maps file extensions (lowercase, without dot) to a category. 'folder' is relative to the user's home directory. Feel free to add or change entries.",
 
   "categories": {
     "images": {
-      "label": "Imagenes",
+      "label": "Images",
       "icon": "image",
-      "folder": "Pictures/Descargas",
+      "folder": "Pictures/Downloads",
       "extensions": ["jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp", "tiff", "svg", "raw"]
     },
     "videos": {
       "label": "Videos",
       "icon": "video",
-      "folder": "Videos/Descargas",
+      "folder": "Videos/Downloads",
       "extensions": ["mp4", "mkv", "mov", "avi", "webm", "flv", "wmv", "m4v"]
     },
     "music": {
-      "label": "Musica",
+      "label": "Music",
       "icon": "audio",
-      "folder": "Music/Descargas",
+      "folder": "Music/Downloads",
       "extensions": ["mp3", "wav", "flac", "ogg", "m4a", "aac", "wma"]
     },
     "compressed": {
-      "label": "Comprimidos",
+      "label": "Compressed",
       "icon": "archive",
-      "folder": "Downloads/Comprimidos",
+      "folder": "Downloads/Compressed",
       "extensions": ["zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz"]
     },
     "installers": {
-      "label": "Instaladores",
+      "label": "Installers",
       "icon": "installer",
-      "folder": "Downloads/Instaladores",
+      "folder": "Downloads/Installers",
       "extensions": ["exe", "msi", "deb", "rpm", "appimage", "dmg", "pkg", "apk"]
     },
     "documents": {
-      "label": "Documentos",
+      "label": "Documents",
       "icon": "document",
-      "folder": "Documents/Otros",
+      "folder": "Documents/Other",
       "extensions": ["pdf", "doc", "docx", "odt", "txt", "ppt", "pptx", "xls", "xlsx", "csv", "rtf"]
     },
     "other": {
-      "label": "Otros",
+      "label": "Other",
       "icon": "other",
-      "folder": "Downloads/Otros",
+      "folder": "Downloads/Other",
       "extensions": []
     }
   },
 
   "topic_matching": {
-    "_comment": "Extensiones cuyo contenido se analiza para ver si pertenecen a alguno de tus Temas personalizados (banco, gimnasio, una app concreta, lo que sea). Los Temas se definen desde la interfaz, no aqui.",
+    "_comment": "Extensions whose content is analyzed to see if they belong to any of your custom Topics. Topics are defined from the UI, not here.",
     "content_extensions": ["pdf", "docx", "txt"]
   }
 }

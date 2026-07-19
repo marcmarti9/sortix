@@ -2,15 +2,15 @@
 
 Automatic downloads organizer, with a file explorer-like interface. It monitors your Downloads folder and, as soon as a new file appears, moves it to its corresponding folder:
 
-- **Images** -> `Pictures/Descargas`
-- **Videos** -> `Videos/Descargas`
-- **Music** -> `Music/Descargas`
-- **Compressed** -> `Downloads/Comprimidos`
-- **Installers** (.exe, .msi, .deb, .apk...) -> `Downloads/Instaladores`
-- **Any other document** -> `Documents/Otros`
-- **Everything else** -> `Downloads/Otros`
+- **Images** -> `Pictures/Downloads`
+- **Videos** -> `Videos/Downloads`
+- **Music** -> `Music/Downloads`
+- **Compressed** -> `Downloads/Compressed`
+- **Installers** (.exe, .msi, .deb, .apk...) -> `Downloads/Installers`
+- **Any other document** -> `Documents/Other`
+- **Everything else** -> `Downloads/Other`
 
-Additionally, **for absolutely anything you want to group** (not just university: it could be your bank, the gym, a specific app, invoices from a supplier...), you define **Topics**: a name, a destination folder, and a set of keywords. For PDF, DOCX, and TXT files, Sortix first looks at the file name and, if there are no clear clues, scans the document's content searching for those keywords. If a document does not match any Topic, it goes to `Documents/Otros` instead of forcing it into one.
+Additionally, **for absolutely anything you want to group** (not just university: it could be your bank, the gym, a specific app, invoices from a supplier...), you define **Topics**: a name, a destination folder, and a set of keywords. For PDF, DOCX, and TXT files, Sortix first looks at the file name and, if there are no clear clues, scans the document's content searching for those keywords. If a document does not match any Topic, it goes to `Documents/Other` instead of forcing it into one.
 
 Example: you create the Topic "Bank" -> `Documents/Bank`, keywords `bank, statement, iban`. The first time a PDF is downloaded from your bank, Sortix creates the `Documents/Bank` folder on its own and archives it there. The same for "Gym", "Netflix", or whatever you can think of.
 
