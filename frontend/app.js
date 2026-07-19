@@ -2,7 +2,195 @@
    Sidebar con Descargas + categorias + tus Temas; panel principal con el
    contenido real de la carpeta seleccionada; ajustes en un dialog aparte. */
 
+const TRANSLATIONS = {
+    es: {
+        patrol_label: "Patrulla Activa",
+        patrol_title: "Vigilar Descargas en tiempo real",
+        organize_btn: "Organizar ahora",
+        settings_title: "Ajustes",
+        organized_count_prefix: "Archivos organizados",
+        empty_state: "Esta carpeta está vacía (o aún no se ha creado).",
+        settings_title_modal: "Ajustes de Sortix",
+        close_title: "Cerrar",
+        tab_topics: "Temas",
+        tab_rules: "Reglas por extensión",
+        topics_hint: "Un Tema es cualquier cosa que quieras agrupar: tu banco, el gimnasio, una app concreta, facturas de un proveedor... Sortix mira el nombre del archivo y, si hace falta, su contenido, buscando estas palabras clave.",
+        topic_name_label: "Nombre del tema",
+        topic_name_placeholder: "ej. Banco, Gimnasio, Netflix",
+        topic_dest_label: "Carpeta destino",
+        topic_dest_placeholder: "ej. Documents/Banco",
+        topic_keywords_label: "Palabras clave (separadas por comas)",
+        topic_keywords_placeholder: "ej. banco, extracto, iban",
+        add_topic_btn: "Añadir tema",
+        rules_hint: "Las reglas por extensión son más simples y siempre ganan a la clasificación automática: todo archivo con esa extensión va directo a la carpeta que indiques.",
+        rule_ext_label: "Extensión",
+        rule_ext_placeholder: "ej. pdf",
+        rule_dest_label: "Carpeta destino",
+        rule_dest_placeholder: "ej. Documents/Facturas",
+        add_rule_btn: "Añadir regla",
+        
+        home: "Inicio",
+        downloads: "Descargas",
+        images: "Imágenes",
+        videos: "Videos",
+        music: "Música",
+        compressed: "Comprimidos",
+        installers: "Instaladores",
+        documents: "Documentos",
+        other: "Otros",
+        
+        status_conn_error: "No se pudo contactar con Sortix.",
+        status_patrol_active: "Patrulla activa: vigilando Descargas.",
+        status_patrol_inactive: "Patrulla desactivada.",
+        status_patrol_error: "No se pudo cambiar la Patrulla Activa.",
+        status_organizing: "Organizando...",
+        status_organized_done: "Listo: {moved} archivo(s) organizado(s).",
+        status_organize_error: "Fallo al organizar la carpeta de descargas.",
+        status_folder_error: "No se pudo abrir esa carpeta.",
+        
+        topics_empty: "Aún no tienes ningún tema. Añade el primero abajo.",
+        rules_empty: "No tienes reglas personalizadas todavía.",
+        delete_topic_title: "Eliminar tema",
+        delete_rule_title: "Eliminar regla",
+        status_topic_saved: "Tema guardado.",
+        status_topic_save_error: "No se pudo guardar el tema.",
+        status_rule_saved: "Regla guardada.",
+        status_rule_save_error: "No se pudo guardar la regla.",
+        theme_title: "Cambiar tema",
+        
+        welcome_message: "Bienvenido: define tus primeros Temas (banco, gimnasio, apps...) y listo, Sortix se encarga solo a partir de ahora."
+    },
+    en: {
+        patrol_label: "Active Patrol",
+        patrol_title: "Watch Downloads in real time",
+        organize_btn: "Organize now",
+        settings_title: "Settings",
+        organized_count_prefix: "Organized files",
+        empty_state: "This folder is empty (or has not been created yet).",
+        settings_title_modal: "Sortix Settings",
+        close_title: "Close",
+        tab_topics: "Topics",
+        tab_rules: "Rules by Extension",
+        topics_hint: "A Topic is anything you want to group: your bank, the gym, a specific app, invoices from a supplier... Sortix looks at the filename and, if needed, its content, searching for these keywords.",
+        topic_name_label: "Topic name",
+        topic_name_placeholder: "e.g. Bank, Gym, Netflix",
+        topic_dest_label: "Destination folder",
+        topic_dest_placeholder: "e.g. Documents/Bank",
+        topic_keywords_label: "Keywords (comma-separated)",
+        topic_keywords_placeholder: "e.g. bank, statement, iban",
+        add_topic_btn: "Add topic",
+        rules_hint: "Rules by extension are simpler and always override automatic classification: any file with that extension goes directly to the folder you specify.",
+        rule_ext_label: "Extension",
+        rule_ext_placeholder: "e.g. pdf",
+        rule_dest_label: "Destination folder",
+        rule_dest_placeholder: "e.g. Documents/Invoices",
+        add_rule_btn: "Add rule",
+        
+        home: "Home",
+        downloads: "Downloads",
+        images: "Images",
+        videos: "Videos",
+        music: "Music",
+        compressed: "Compressed",
+        installers: "Installers",
+        documents: "Documents",
+        other: "Other",
+        
+        status_conn_error: "Could not connect to Sortix.",
+        status_patrol_active: "Patrol active: watching Downloads.",
+        status_patrol_inactive: "Patrol deactivated.",
+        status_patrol_error: "Could not toggle Active Patrol.",
+        status_organizing: "Organizing...",
+        status_organized_done: "Done: {moved} file(s) organized.",
+        status_organize_error: "Failed to organize downloads folder.",
+        status_folder_error: "Could not open that folder.",
+        
+        topics_empty: "You don't have any topics yet. Add your first one below.",
+        rules_empty: "You don't have any custom rules yet.",
+        delete_topic_title: "Delete topic",
+        delete_rule_title: "Delete rule",
+        status_topic_saved: "Topic saved.",
+        status_topic_save_error: "Could not save topic.",
+        status_rule_saved: "Rule saved.",
+        status_rule_save_error: "Could not save rule.",
+        theme_title: "Toggle theme",
+        
+        welcome_message: "Welcome: define your first Topics (bank, gym, apps...) and that's it, Sortix takes care of the rest."
+    }
+};
+
+let currentLang = localStorage.getItem("sortix_lang");
+if (!currentLang) {
+    const navLang = navigator.language || navigator.userLanguage;
+    currentLang = navLang && navLang.startsWith("en") ? "en" : "es";
+}
+
+function t(key, defaultVal) {
+    const translations = TRANSLATIONS[currentLang];
+    if (translations && translations[key] !== undefined) {
+        return translations[key];
+    }
+    return defaultVal !== undefined ? defaultVal : key;
+}
+
+function applyLanguage() {
+    document.documentElement.lang = currentLang;
+    
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        el.textContent = t(key);
+    });
+
+    document.querySelectorAll("[data-i18n-title]").forEach(el => {
+        const key = el.getAttribute("data-i18n-title");
+        el.setAttribute("title", t(key));
+    });
+
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+        const key = el.getAttribute("data-i18n-placeholder");
+        el.setAttribute("placeholder", t(key));
+    });
+
+    const langSelect = document.getElementById("lang-select");
+    if (langSelect) {
+        langSelect.value = currentLang;
+    }
+}
+
+// ---- tema claro/oscuro (rdsx style) ---------------------------------------
+let currentTheme = localStorage.getItem("sortix_theme") || "dark";
+
+function updateThemeButton() {
+    const btn = document.getElementById("btn-theme");
+    if (btn) {
+        btn.innerHTML = svgIcon(currentTheme === "dark" ? "sun" : "moon");
+    }
+}
+
+function toggleTheme() {
+    const nextTheme = currentTheme === "dark" ? "light" : "dark";
+    
+    const switchTheme = () => {
+        currentTheme = nextTheme;
+        localStorage.setItem("sortix_theme", currentTheme);
+        if (currentTheme === "light") {
+            document.documentElement.classList.add("light");
+        } else {
+            document.documentElement.classList.remove("light");
+        }
+        updateThemeButton();
+    };
+
+    if (!document.startViewTransition) {
+        switchTheme();
+    } else {
+        document.startViewTransition(switchTheme);
+    }
+}
+
 const ICONS = {
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
+    moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
     downloads: '<path d="M12 3v11m0 0-4-4m4 4 4-4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/>',
     image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 16-5-5-9 9"/>',
     video: '<rect x="3" y="5" width="14" height="14" rx="2"/><path d="m17 9 4-3v12l-4-3"/>',
@@ -104,14 +292,14 @@ function renderSidebar() {
 
     const homeItem = document.createElement("li");
     homeItem.className = "tree-item" + (currentPath === null ? " active" : "");
-    homeItem.innerHTML = `${svgIcon("home")}<span>Inicio</span>`;
+    homeItem.innerHTML = `${svgIcon("home")}<span>${t("home", "Inicio")}</span>`;
     homeItem.addEventListener("click", () => navigateTo(null));
     folderTreeEl.appendChild(homeItem);
 
     for (const item of tree) {
         const li = document.createElement("li");
         li.className = "tree-item" + (currentPath === item.path ? " active" : "");
-        li.innerHTML = `${svgIcon(item.icon)}<span>${escapeHtml(item.label)}</span>`;
+        li.innerHTML = `${svgIcon(item.icon)}<span>${escapeHtml(t(item.key, item.label))}</span>`;
         li.addEventListener("click", () => navigateTo(item.path));
         folderTreeEl.appendChild(li);
     }
@@ -127,7 +315,7 @@ function escapeHtml(text) {
 
 function labelForPath(path) {
     const match = tree.find((item) => item.path === path);
-    if (match) return match.label;
+    if (match) return t(match.key, match.label);
     const segments = path.split("/");
     return segments[segments.length - 1];
 }
@@ -137,7 +325,7 @@ function renderBreadcrumbs() {
 
     const homeCrumb = document.createElement("button");
     homeCrumb.className = "crumb";
-    homeCrumb.innerHTML = `${svgIcon("home")}<span>Inicio</span>`;
+    homeCrumb.innerHTML = `${svgIcon("home")}<span>${t("home", "Inicio")}</span>`;
     homeCrumb.addEventListener("click", () => navigateTo(null));
     breadcrumbsEl.appendChild(homeCrumb);
 
@@ -191,7 +379,7 @@ async function renderContent() {
             fileGridEl.appendChild(buildTile(entry));
         }
     } catch (err) {
-        showStatus("No se pudo abrir esa carpeta.", true);
+        showStatus(t("status_folder_error"), true);
     }
 }
 
@@ -199,7 +387,7 @@ function renderRootTiles() {
     for (const item of tree) {
         const tile = document.createElement("div");
         tile.className = "tile folder-tile";
-        tile.innerHTML = `${svgIcon(item.icon, "tile-icon")}<span class="tile-name">${escapeHtml(item.label)}</span>`;
+        tile.innerHTML = `${svgIcon(item.icon, "tile-icon")}<span class="tile-name">${escapeHtml(t(item.key, item.label))}</span>`;
         tile.addEventListener("click", () => navigateTo(item.path));
         fileGridEl.appendChild(tile);
     }
@@ -227,7 +415,7 @@ async function refreshStatus() {
         patrolToggle.checked = data.active;
         filesOrganizedEl.textContent = data.files_organized;
     } catch (err) {
-        showStatus("No se pudo contactar con Sortix.", true);
+        showStatus(t("status_conn_error"), true);
     }
 }
 
@@ -240,24 +428,24 @@ patrolToggle.addEventListener("change", async () => {
             body: JSON.stringify({ active: desired }),
         });
         patrolToggle.checked = data.active;
-        showStatus(data.active ? "Patrulla activa: vigilando Descargas." : "Patrulla desactivada.");
+        showStatus(data.active ? t("status_patrol_active") : t("status_patrol_inactive"));
     } catch (err) {
         patrolToggle.checked = !desired;
-        showStatus("No se pudo cambiar la Patrulla Activa.", true);
+        showStatus(t("status_patrol_error"), true);
     }
 });
 
 organizeBtn.addEventListener("click", async () => {
     organizeBtn.disabled = true;
-    showStatus("Organizando...");
+    showStatus(t("status_organizing"));
     try {
         const data = await fetchJSON("/api/organize-now", { method: "POST" });
-        showStatus(`Listo: ${data.moved} archivo(s) organizado(s).`);
+        showStatus(t("status_organized_done").replace("{moved}", data.moved));
         await refreshStatus();
         await loadTree();
         if (currentPath !== null) await renderContent();
     } catch (err) {
-        showStatus("Fallo al organizar la carpeta de descargas.", true);
+        showStatus(t("status_organize_error"), true);
     } finally {
         organizeBtn.disabled = false;
     }
@@ -269,7 +457,7 @@ async function refreshTopics() {
     const topics = await fetchJSON("/api/topics");
     topicsListEl.innerHTML = "";
     if (topics.length === 0) {
-        topicsListEl.innerHTML = '<li class="empty">Aun no tienes ningun tema. Anade el primero abajo.</li>';
+        topicsListEl.innerHTML = `<li class="empty">${t("topics_empty")}</li>`;
     }
     for (const topic of topics) {
         const li = document.createElement("li");
@@ -281,7 +469,7 @@ async function refreshTopics() {
         const delBtn = document.createElement("button");
         delBtn.className = "icon-btn danger";
         delBtn.innerHTML = svgIcon("trash");
-        delBtn.title = "Eliminar tema";
+        delBtn.title = t("delete_topic_title");
         delBtn.addEventListener("click", async () => {
             await fetchJSON(`/api/topics/${topic.id}`, { method: "DELETE" });
             await refreshTopics();
@@ -307,9 +495,9 @@ topicForm.addEventListener("submit", async (event) => {
         topicForm.reset();
         await refreshTopics();
         await loadTree();
-        showStatus("Tema guardado.");
+        showStatus(t("status_topic_saved"));
     } catch (err) {
-        showStatus(err.message || "No se pudo guardar el tema.", true);
+        showStatus(err.message || t("status_topic_save_error"), true);
     }
 });
 
@@ -319,7 +507,7 @@ async function refreshRules() {
     const rules = await fetchJSON("/api/rules");
     rulesListEl.innerHTML = "";
     if (rules.length === 0) {
-        rulesListEl.innerHTML = '<li class="empty">No tienes reglas personalizadas todavia.</li>';
+        rulesListEl.innerHTML = `<li class="empty">${t("rules_empty")}</li>`;
     }
     for (const rule of rules) {
         const li = document.createElement("li");
@@ -327,7 +515,7 @@ async function refreshRules() {
         const delBtn = document.createElement("button");
         delBtn.className = "icon-btn danger";
         delBtn.innerHTML = svgIcon("trash");
-        delBtn.title = "Eliminar regla";
+        delBtn.title = t("delete_rule_title");
         delBtn.addEventListener("click", async () => {
             await fetchJSON(`/api/rules/${rule.id}`, { method: "DELETE" });
             await refreshRules();
@@ -350,9 +538,9 @@ ruleForm.addEventListener("submit", async (event) => {
         });
         ruleForm.reset();
         await refreshRules();
-        showStatus("Regla guardada.");
+        showStatus(t("status_rule_saved"));
     } catch (err) {
-        showStatus(err.message || "No se pudo guardar la regla.", true);
+        showStatus(err.message || t("status_rule_save_error"), true);
     }
 });
 
@@ -382,7 +570,26 @@ function openSettings(tab) {
 
 // ---- arranque ------------------------------------------------------------
 
+const langSelect = document.getElementById("lang-select");
+if (langSelect) {
+    langSelect.addEventListener("change", async (e) => {
+        currentLang = e.target.value;
+        localStorage.setItem("sortix_lang", currentLang);
+        applyLanguage();
+        await Promise.all([refreshTopics(), refreshRules(), loadTree()]);
+        renderBreadcrumbs();
+        await renderContent();
+    });
+}
+
+const themeBtn = document.getElementById("btn-theme");
+if (themeBtn) {
+    themeBtn.addEventListener("click", toggleTheme);
+}
+
 async function init() {
+    applyLanguage();
+    updateThemeButton();
     await Promise.all([refreshStatus(), loadTree(), refreshTopics(), refreshRules()]);
     renderBreadcrumbs();
     await renderContent();
@@ -393,7 +600,7 @@ async function init() {
     const rulesEmpty = rulesListEl.querySelector(".empty");
     if (!onboarded && topicsEmpty && rulesEmpty) {
         openSettings("topics");
-        showStatus("Bienvenido: define tus primeros Temas (banco, gimnasio, apps...) y listo, Sortix se encarga solo a partir de ahora.");
+        showStatus(t("welcome_message"));
     }
     settingsModal.addEventListener("close", () => localStorage.setItem("sortix_onboarded", "1"));
 }

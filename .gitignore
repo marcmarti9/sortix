@@ -3,3 +3,5 @@ backend/.venv/
 *.pyc
 database/sortix.db
 backend/.env
+.claude/
+

@@ -40,7 +40,7 @@ explorador de archivos: la barra lateral tiene Descargas, las categorias
 base y tus Temas; al hacer click en cualquiera ves su contenido real, con
 breadcrumbs para moverte entre carpetas. Arriba a la derecha: el interruptor
 de **Patrulla Activa**, el boton **Organizar ahora** (para lo que ya haya en
-Descargas) y el icono de engranaje para abrir **Ajustes** (Temas y reglas).
+Descargas), el selector de **idioma** (ES/EN), el interruptor de **tema claro/oscuro** (con animaciones de transición circulares) y el icono de engranaje para abrir **Ajustes** (Temas y reglas).
 
 La primera vez que la abres, si no tienes ningun Tema ni regla, se abre
 Ajustes solo para que definas los tuyos.
