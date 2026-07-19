@@ -1,0 +1,53 @@
+{
+  "_comment": "Mapea extensiones de archivo (en minusculas, sin punto) a una categoria. 'folder' es relativo a la carpeta personal del usuario. Anade o cambia entradas libremente.",
+
+  "categories": {
+    "images": {
+      "label": "Imagenes",
+      "icon": "image",
+      "folder": "Pictures/Descargas",
+      "extensions": ["jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp", "tiff", "svg", "raw"]
+    },
+    "videos": {
+      "label": "Videos",
+      "icon": "video",
+      "folder": "Videos/Descargas",
+      "extensions": ["mp4", "mkv", "mov", "avi", "webm", "flv", "wmv", "m4v"]
+    },
+    "music": {
+      "label": "Musica",
+      "icon": "audio",
+      "folder": "Music/Descargas",
+      "extensions": ["mp3", "wav", "flac", "ogg", "m4a", "aac", "wma"]
+    },
+    "compressed": {
+      "label": "Comprimidos",
+      "icon": "archive",
+      "folder": "Downloads/Comprimidos",
+      "extensions": ["zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz"]
+    },
+    "installers": {
+      "label": "Instaladores",
+      "icon": "installer",
+      "folder": "Downloads/Instaladores",
+      "extensions": ["exe", "msi", "deb", "rpm", "appimage", "dmg", "pkg", "apk"]
+    },
+    "documents": {
+      "label": "Documentos",
+      "icon": "document",
+      "folder": "Documents/Otros",
+      "extensions": ["pdf", "doc", "docx", "odt", "txt", "ppt", "pptx", "xls", "xlsx", "csv", "rtf"]
+    },
+    "other": {
+      "label": "Otros",
+      "icon": "other",
+      "folder": "Downloads/Otros",
+      "extensions": []
+    }
+  },
+
+  "topic_matching": {
+    "_comment": "Extensiones cuyo contenido se analiza para ver si pertenecen a alguno de tus Temas personalizados (banco, gimnasio, una app concreta, lo que sea). Los Temas se definen desde la interfaz, no aqui.",
+    "content_extensions": ["pdf", "docx", "txt"]
+  }
+}

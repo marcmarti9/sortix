@@ -1,0 +1,132 @@
+"""Servidor web de Sortix: sirve la interfaz (frontend/) y expone la API
+que usa para controlar la Patrulla Activa, lanzar una organizacion manual
+y gestionar reglas personalizadas."""
+
+from pathlib import Path
+
+from flask import Flask, jsonify, request, send_from_directory
+
+from app import browser, db
+from app.organizer import organize_directory
+from app.watcher import PatrolManager
+from config.settings import DOWNLOADS_DIR, PROJECT_DIR
+
+FRONTEND_DIR = PROJECT_DIR / "frontend"
+
+patrol = PatrolManager(DOWNLOADS_DIR)
+
+
+def create_app() -> Flask:
+    app = Flask(__name__, static_folder=None)
+
+    @app.get("/")
+    def index():
+        return send_from_directory(FRONTEND_DIR, "index.html")
+
+    @app.get("/<path:filename>")
+    def frontend_assets(filename):
+        return send_from_directory(FRONTEND_DIR, filename)
+
+    @app.get("/api/status")
+    def status():
+        return jsonify({
+            "active": patrol.is_active(),
+            "files_organized": db.count_moves(),
+            "downloads_dir": str(DOWNLOADS_DIR),
+        })
+
+    @app.post("/api/patrol/toggle")
+    def toggle_patrol():
+        payload = request.get_json(silent=True) or {}
+        desired = payload.get("active")
+        if desired is None:
+            desired = not patrol.is_active()
+
+        if desired:
+            patrol.start()
+        else:
+            patrol.stop()
+
+        db.set_setting("patrol_active", "1" if patrol.is_active() else "0")
+        return jsonify({"active": patrol.is_active()})
+
+    @app.post("/api/organize-now")
+    def organize_now():
+        moved = organize_directory(DOWNLOADS_DIR)
+        return jsonify({"moved": len(moved), "items": moved})
+
+    @app.get("/api/rules")
+    def get_rules():
+        return jsonify(db.list_rules())
+
+    @app.post("/api/rules")
+    def create_rule():
+        payload = request.get_json(silent=True) or {}
+        extension = (payload.get("extension") or "").strip()
+        destination = (payload.get("destination") or "").strip()
+        if not extension or not destination:
+            return jsonify({"error": "extension y destination son obligatorios"}), 400
+        rule = db.add_rule(extension, destination)
+        return jsonify(rule), 201
+
+    @app.delete("/api/rules/<int:rule_id>")
+    def remove_rule(rule_id: int):
+        db.delete_rule(rule_id)
+        return "", 204
+
+    @app.get("/api/log")
+    def get_log():
+        limit = request.args.get("limit", default=20, type=int)
+        return jsonify(db.recent_moves(limit))
+
+    @app.get("/api/topics")
+    def get_topics():
+        return jsonify(db.list_topics())
+
+    @app.post("/api/topics")
+    def create_topic():
+        payload = request.get_json(silent=True) or {}
+        name = (payload.get("name") or "").strip()
+        destination = (payload.get("destination") or "").strip()
+        keywords = payload.get("keywords") or []
+        if isinstance(keywords, str):
+            keywords = [k.strip() for k in keywords.split(",")]
+        keywords = [k for k in keywords if k]
+
+        if not name or not destination or not keywords:
+            return jsonify({"error": "name, destination y keywords son obligatorios"}), 400
+
+        topic = db.add_topic(name, destination, keywords)
+        return jsonify(topic), 201
+
+    @app.delete("/api/topics/<int:topic_id>")
+    def remove_topic(topic_id: int):
+        db.delete_topic(topic_id)
+        return "", 204
+
+    @app.get("/api/tree")
+    def get_tree():
+        return jsonify(browser.build_tree())
+
+    @app.get("/api/browse")
+    def browse_folder():
+        raw_path = request.args.get("path", "")
+        resolved = browser.resolve_safe_path(raw_path)
+        if resolved is None:
+            return jsonify({"error": "ruta no permitida"}), 400
+        if not resolved.exists():
+            return jsonify({"path": raw_path, "exists": False, "entries": []})
+        if not resolved.is_dir():
+            return jsonify({"error": "la ruta no es una carpeta"}), 400
+        return jsonify({
+            "path": raw_path,
+            "exists": True,
+            "entries": browser.list_directory(resolved),
+        })
+
+    return app
+
+
+def resume_patrol_if_needed() -> None:
+    if db.get_setting("patrol_active", "0") == "1":
+        patrol.start()

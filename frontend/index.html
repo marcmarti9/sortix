@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sortix</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <header id="toolbar">
+            <div id="breadcrumbs"></div>
+            <div id="toolbar-actions">
+                <span class="toolbar-label">Patrulla Activa</span>
+                <label class="switch" title="Vigilar Descargas en tiempo real">
+                    <input type="checkbox" id="patrol-toggle">
+                    <span class="slider"></span>
+                </label>
+                <button type="button" id="btn-organize">Organizar ahora</button>
+                <button type="button" id="btn-settings" class="icon-btn" title="Ajustes"></button>
+            </div>
+        </header>
+
+        <div id="body">
+            <nav id="sidebar">
+                <div id="brand">Sortix</div>
+                <ul id="folder-tree"></ul>
+                <div id="sidebar-footer">
+                    <p>Archivos organizados: <span id="files-organized-count">0</span></p>
+                </div>
+            </nav>
+
+            <main id="content">
+                <div id="file-grid"></div>
+                <p id="empty-state" hidden>Esta carpeta esta vacia (o aun no se ha creado).</p>
+            </main>
+        </div>
+
+        <p id="status-message" role="status"></p>
+    </div>
+
+    <dialog id="settings-modal">
+        <div id="settings-header">
+            <h2>Ajustes de Sortix</h2>
+            <button type="button" id="btn-close-settings" class="icon-btn" title="Cerrar"></button>
+        </div>
+
+        <div id="settings-tabs">
+            <button type="button" class="tab-btn active" data-tab="topics">Temas</button>
+            <button type="button" class="tab-btn" data-tab="rules">Reglas por extension</button>
+        </div>
+
+        <section id="tab-topics" class="tab-panel">
+            <p class="hint">
+                Un Tema es cualquier cosa que quieras agrupar: tu banco, el gimnasio,
+                una app concreta, facturas de un proveedor... Sortix mira el nombre
+                del archivo y, si hace falta, su contenido, buscando estas palabras clave.
+            </p>
+            <ul id="topics-list" class="settings-list"></ul>
+            <form id="topic-form" class="settings-form">
+                <label for="topic-name">Nombre del tema</label>
+                <input type="text" id="topic-name" placeholder="ej. Banco, Gimnasio, Netflix" required>
+
+                <label for="topic-destination">Carpeta destino</label>
+                <input type="text" id="topic-destination" placeholder="ej. Documents/Banco" required>
+
+                <label for="topic-keywords">Palabras clave (separadas por comas)</label>
+                <input type="text" id="topic-keywords" placeholder="ej. banco, extracto, iban" required>
+
+                <button type="submit">Anadir tema</button>
+            </form>
+        </section>
+
+        <section id="tab-rules" class="tab-panel" hidden>
+            <p class="hint">
+                Las reglas por extension son mas simples y siempre ganan a la
+                clasificacion automatica: todo archivo con esa extension va directo
+                a la carpeta que indiques.
+            </p>
+            <ul id="rules-list" class="settings-list"></ul>
+            <form id="rule-form" class="settings-form">
+                <label for="rule-extension">Extension</label>
+                <input type="text" id="rule-extension" placeholder="ej. pdf" required>
+
+                <label for="rule-destination">Carpeta destino</label>
+                <input type="text" id="rule-destination" placeholder="ej. Documents/Facturas" required>
+
+                <button type="submit">Anadir regla</button>
+            </form>
+        </section>
+    </dialog>
+
+    <script src="app.js"></script>
+</body>
+</html>

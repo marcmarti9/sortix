@@ -1,0 +1,13 @@
+[Unit]
+Description=Sortix - organizador automatico de descargas
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=__BACKEND_DIR__
+ExecStart=__PYTHON_BIN__ __BACKEND_DIR__/main.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
