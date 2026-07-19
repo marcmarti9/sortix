@@ -17,7 +17,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     """Crea las tablas si faltan. Se comprueba en cada conexion (un SELECT
     trivial) para sobrevivir a que alguien borre o vacie sortix.db con el
     servidor en marcha: la siguiente peticion lo regenera en vez de dar 500."""
-    required = {"rules", "moves_log", "settings", "topics"}
+    required = {"rules", "moves_log", "settings", "topics", "maintenance_rules"}
     existing = {
         row["name"]
         for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
@@ -42,6 +42,35 @@ def _migrate(conn: sqlite3.Connection) -> None:
     topics_cols = {row["name"] for row in conn.execute("PRAGMA table_info(topics)")}
     if "rename_pattern" not in topics_cols:
         conn.execute("ALTER TABLE topics ADD COLUMN rename_pattern TEXT")
+
+    existing_tables = {
+        row["name"]
+        for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+    }
+    if "maintenance_rules" in existing_tables:
+        m_cols = {row["name"] for row in conn.execute("PRAGMA table_info(maintenance_rules)")}
+        if "folder" not in m_cols:
+            conn.execute("DROP TABLE maintenance_rules")
+            conn.execute("""
+                CREATE TABLE maintenance_rules (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    folder TEXT NOT NULL UNIQUE,
+                    max_age_days INTEGER NOT NULL,
+                    active INTEGER NOT NULL DEFAULT 1,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                )
+            """)
+    else:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS maintenance_rules (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                folder TEXT NOT NULL UNIQUE,
+                max_age_days INTEGER NOT NULL,
+                active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+
 
 
 @contextmanager
@@ -186,3 +215,29 @@ def add_topic(name: str, destination: str, keywords: list[str], rename_pattern: 
 def delete_topic(topic_id: int) -> None:
     with get_conn() as conn:
         conn.execute("DELETE FROM topics WHERE id = ?", (topic_id,))
+
+
+# ---- maintenance rules -------------------------------------------------------
+
+def list_maintenance_rules() -> list[dict]:
+    with get_conn() as conn:
+        rows = conn.execute("SELECT * FROM maintenance_rules ORDER BY folder").fetchall()
+        return [dict(r) for r in rows]
+
+
+def add_maintenance_rule(folder: str, max_age_days: int) -> dict:
+    folder = folder.strip()
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO maintenance_rules (folder, max_age_days, active) VALUES (?, ?, 1)
+               ON CONFLICT(folder) DO UPDATE SET max_age_days = excluded.max_age_days""",
+            (folder, max_age_days),
+        )
+        row = conn.execute("SELECT * FROM maintenance_rules WHERE folder = ?", (folder,)).fetchone()
+        return dict(row)
+
+
+def delete_maintenance_rule(rule_id: int) -> None:
+    with get_conn() as conn:
+        conn.execute("DELETE FROM maintenance_rules WHERE id = ?", (rule_id,))
+

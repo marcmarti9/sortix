@@ -347,7 +347,71 @@ def create_app() -> Flask:
         
         return jsonify({"success": True, "deleted": deleted_count})
 
+    @app.get("/api/maintenance/rules")
+    @app.get("/api/maintenance")
+    def get_maintenance_rules():
+        rules = db.list_maintenance_rules()
+        for r in rules:
+            r["active"] = bool(r["active"])
+        return jsonify(rules)
+
+    @app.post("/api/maintenance/rules")
+    @app.post("/api/maintenance")
+    def create_maintenance_rule():
+        payload = request.get_json(silent=True) or {}
+        directory_path = payload.get("directory_path") or payload.get("folder")
+        max_age_days = payload.get("max_age_days")
+        active_val = payload.get("active", True)
+        
+        if not directory_path or not isinstance(directory_path, str):
+            return jsonify({"error": "directory_path es obligatorio"}), 400
+            
+        resolved_path = browser.resolve_safe_path(directory_path)
+        if resolved_path is None:
+            return jsonify({"error": "Ruta no permitida o insegura"}), 400
+            
+        if max_age_days is None:
+            return jsonify({"error": "max_age_days es obligatorio"}), 400
+        
+        try:
+            max_age_days_int = int(max_age_days)
+            if max_age_days_int <= 0:
+                raise ValueError()
+        except (ValueError, TypeError):
+            return jsonify({"error": "max_age_days debe ser un entero positivo"}), 400
+
+        active = 1 if active_val else 0
+        stored_path = browser._path_to_key(resolved_path)
+        
+        rule = db.add_maintenance_rule(stored_path, max_age_days_int, active)
+        rule["active"] = bool(rule["active"])
+        return jsonify(rule), 201
+
+    @app.delete("/api/maintenance/rules/<int:rule_id>")
+    @app.delete("/api/maintenance/<int:rule_id>")
+    def remove_maintenance_rule(rule_id: int):
+        db.delete_maintenance_rule(rule_id)
+        return "", 204
+
+    @app.post("/api/maintenance/run")
+    def run_maintenance():
+        from app.organizer import run_maintenance_cleanup
+        deleted = run_maintenance_cleanup()
+        return jsonify({"success": True, "deleted": len(deleted), "items": deleted}), 200
+
+    # Ejecucion del mantenimiento al iniciar el servidor
+    import threading
+    def start_background_maintenance():
+        try:
+            from app.organizer import run_maintenance_cleanup
+            run_maintenance_cleanup()
+        except Exception as e:
+            logger.exception("Error en la ejecucion de mantenimiento al inicio: %s", e)
+
+    threading.Thread(target=start_background_maintenance, daemon=True).start()
+
     return app
+
 
 
 def resume_patrol_if_needed() -> None:

@@ -67,7 +67,7 @@ with db.get_conn() as conn:
     cols = {r["name"] for r in conn.execute("PRAGMA table_info(moves_log)")}
     tables = {r["name"] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
 assert "undone_at" in cols, cols
-assert {"rules", "settings", "topics"} <= tables, tables
+assert {"rules", "settings", "topics", "maintenance_rules"} <= tables, tables
 print("OK migracion y regeneracion de esquema")
 
 # ---- app y guardas HTTP ----
@@ -248,6 +248,109 @@ assert (downloads / "mi_remito_luz.pdf").exists() # se omitio, el archivo sigue 
 db.set_setting("duplicate_action", "suffix")
 (downloads / "mi_remito_luz.pdf").unlink()
 print("OK renombrado dinamico, condiciones y duplicados")
+
+# ---- mantenimiento ----
+assert len(db.list_maintenance_rules()) == 0
+mr = db.add_maintenance_rule("Downloads", 5, 1)
+assert mr["directory_path"] == "Downloads"
+assert mr["max_age_days"] == 5
+assert mr["active"] == 1
+rules = db.list_maintenance_rules()
+assert len(rules) == 1
+assert rules[0]["directory_path"] == "Downloads"
+db.delete_maintenance_rule(mr["id"])
+assert len(db.list_maintenance_rules()) == 0
+print("OK maintenance rules helpers (new schema)")
+
+# GET rules initially empty
+r = client.get("/api/maintenance/rules")
+assert r.status_code == 200, r.data
+assert r.get_json() == []
+
+# POST rule with unsafe path should fail
+r = client.post("/api/maintenance/rules", json={"directory_path": "../unsafe", "max_age_days": 10})
+assert r.status_code == 400, r.status_code
+r = client.post("/api/maintenance/rules", json={"directory_path": "/etc/passwd", "max_age_days": 10})
+assert r.status_code == 400, r.status_code
+
+# POST rule with invalid max_age_days should fail
+r = client.post("/api/maintenance/rules", json={"directory_path": "Downloads", "max_age_days": -5})
+assert r.status_code == 400, r.status_code
+r = client.post("/api/maintenance/rules", json={"directory_path": "Downloads", "max_age_days": "abc"})
+assert r.status_code == 400, r.status_code
+r = client.post("/api/maintenance/rules", json={"directory_path": "Downloads"})
+assert r.status_code == 400, r.status_code
+
+# POST valid rule
+r = client.post("/api/maintenance/rules", json={"directory_path": "Downloads", "max_age_days": 2, "active": True})
+assert r.status_code == 201, r.data
+rule = r.get_json()
+assert rule["directory_path"] == "Downloads"
+assert rule["max_age_days"] == 2
+assert rule["active"] is True
+
+# GET rules should contain our rule now
+r = client.get("/api/maintenance/rules")
+assert r.status_code == 200, r.data
+rules_list = r.get_json()
+assert len(rules_list) == 1
+assert rules_list[0]["directory_path"] == "Downloads"
+assert rules_list[0]["active"] is True
+
+rule_id = rule["id"]
+
+# Crear archivos de prueba de distintas edades
+import time
+maint_dir = downloads / "MaintTest"
+maint_dir.mkdir(parents=True, exist_ok=True)
+
+file1 = maint_dir / "keep_fresh.txt"
+file2 = maint_dir / "keep_recent.txt"
+file3 = maint_dir / "delete_old.txt"
+
+file1.write_text("fresh")
+file2.write_text("recent")
+file3.write_text("old")
+
+now = time.time()
+os.utime(file1, (now, now))
+os.utime(file2, (now - 1.1 * 86400, now - 1.1 * 86400))
+os.utime(file3, (now - 3.1 * 86400, now - 3.1 * 86400))
+
+# Ejecutar el mantenimiento
+r = client.post("/api/maintenance/run")
+assert r.status_code == 200, r.data
+resp = r.get_json()
+assert resp["success"] is True
+assert resp["deleted"] == 1
+assert resp["items"][0]["filename"] == "delete_old.txt"
+
+# Verificar eliminaciones
+assert file1.exists()
+assert file2.exists()
+assert not file3.exists()
+
+# Verificar log de movimientos
+moves = db.recent_moves(10)
+maint_moves = [m for m in moves if m["category"] == "mantenimiento"]
+assert len(maint_moves) == 1
+assert maint_moves[0]["filename"] == "delete_old.txt"
+assert maint_moves[0]["destination"] == "DELETED"
+
+# Eliminar regla y limpiar
+r = client.delete(f"/api/maintenance/rules/{rule_id}")
+assert r.status_code == 204
+
+if file1.exists():
+    file1.unlink()
+if file2.exists():
+    file2.unlink()
+if file3.exists():
+    file3.unlink()
+if maint_dir.exists():
+    maint_dir.rmdir()
+
+print("OK maintenance rules execution, path safety, and API")
 
 # ---- pruebas de endpoints de duplicados ----
 (downloads / "dup1.pdf").write_bytes(b"contenido_duplicado_123")

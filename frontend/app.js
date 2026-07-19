@@ -106,7 +106,25 @@ const TRANSLATIONS = {
         duplicates_empty: "No se han encontrado archivos duplicados.",
         status_cleaning_done: "Limpieza completada: se eliminaron {count} archivo(s).",
         status_cleaning_error: "No se pudieron eliminar algunos archivos.",
-        status_scanning_error: "No se pudieron buscar archivos duplicados."
+        status_scanning_error: "No se pudieron buscar archivos duplicados.",
+        
+        tab_maintenance: "Mantenimiento",
+        maintenance_hint: "Configura reglas para eliminar automáticamente archivos de carpetas específicas después de cierta cantidad de días.",
+        maintenance_folder_label: "Carpeta",
+        maintenance_folder_placeholder: "ej. Downloads/Junk",
+        maintenance_age_label: "Edad máxima (días)",
+        maintenance_age_placeholder: "ej. 30",
+        add_maintenance_rule_btn: "Añadir regla de mantenimiento",
+        run_maintenance_btn: "Ejecutar mantenimiento ahora",
+        maintenance_empty: "No hay reglas de mantenimiento configuradas.",
+        delete_maintenance_rule_title: "Eliminar regla de mantenimiento",
+        status_maintenance_saved: "Regla de mantenimiento guardada.",
+        status_maintenance_save_error: "No se pudo guardar la regla de mantenimiento.",
+        status_maintenance_deleted: "Regla de mantenimiento eliminada.",
+        status_maintenance_delete_error: "No se pudo eliminar la regla de mantenimiento.",
+        status_maintenance_running: "Ejecutando mantenimiento...",
+        status_maintenance_run_done: "Mantenimiento completado: {count} archivo(s) limpiado(s).",
+        status_maintenance_run_error: "No se pudo ejecutar el mantenimiento."
     },
     en: {
         patrol_label: "Active Patrol",
@@ -211,7 +229,25 @@ const TRANSLATIONS = {
         duplicates_empty: "No duplicate files found.",
         status_cleaning_done: "Cleaning completed: {count} file(s) deleted.",
         status_cleaning_error: "Could not delete some files.",
-        status_scanning_error: "Could not scan for duplicate files."
+        status_scanning_error: "Could not scan for duplicate files.",
+        
+        tab_maintenance: "Maintenance",
+        maintenance_hint: "Configure rules to automatically clean up files from specific folders after a certain number of days.",
+        maintenance_folder_label: "Folder",
+        maintenance_folder_placeholder: "e.g. Downloads/Junk",
+        maintenance_age_label: "Max age (days)",
+        maintenance_age_placeholder: "e.g. 30",
+        add_maintenance_rule_btn: "Add maintenance rule",
+        run_maintenance_btn: "Run maintenance now",
+        maintenance_empty: "No maintenance rules configured yet.",
+        delete_maintenance_rule_title: "Delete maintenance rule",
+        status_maintenance_saved: "Maintenance rule saved.",
+        status_maintenance_save_error: "Could not save maintenance rule.",
+        status_maintenance_deleted: "Maintenance rule deleted.",
+        status_maintenance_delete_error: "Could not delete maintenance rule.",
+        status_maintenance_running: "Running maintenance...",
+        status_maintenance_run_done: "Maintenance completed: {count} file(s) cleaned up.",
+        status_maintenance_run_error: "Could not run maintenance."
     }
 };
 
@@ -358,6 +394,9 @@ const topicsListEl = document.getElementById("topics-list");
 const rulesListEl = document.getElementById("rules-list");
 const topicForm = document.getElementById("topic-form");
 const ruleForm = document.getElementById("rule-form");
+const maintenanceListEl = document.getElementById("maintenance-list");
+const maintenanceForm = document.getElementById("maintenance-form");
+const btnRunMaintenance = document.getElementById("btn-run-maintenance");
 
 let statusTimer = null;
 function showStatus(message, isError = false) {
@@ -851,6 +890,87 @@ if (generalSettingsForm) {
     });
 }
 
+// ---- mantenimiento (reglas y limpieza) ---------------------------------------
+
+async function refreshMaintenance() {
+    try {
+        const rules = await fetchJSON("/api/maintenance/rules");
+        maintenanceListEl.innerHTML = "";
+        if (rules.length === 0) {
+            maintenanceListEl.innerHTML = `<li class="empty">${t("maintenance_empty")}</li>`;
+            return;
+        }
+        for (const rule of rules) {
+            const li = document.createElement("li");
+            const folderName = rule.directory_path || rule.folder || rule.name;
+            const maxAge = rule.max_age_days || rule.age_days;
+            li.innerHTML = `<div class="settings-item-main">
+                <strong>${escapeHtml(folderName)}</strong>
+                <span class="muted">&rarr; ${maxAge} ${currentLang === "es" ? "días" : "days"}</span>
+            </div>`;
+            
+            const delBtn = document.createElement("button");
+            delBtn.className = "icon-btn danger";
+            delBtn.innerHTML = svgIcon("trash");
+            delBtn.title = t("delete_maintenance_rule_title");
+            delBtn.addEventListener("click", async () => {
+                try {
+                    await fetchJSON(`/api/maintenance/rules/${rule.id}`, { method: "DELETE" });
+                    await refreshMaintenance();
+                    showStatus(t("status_maintenance_deleted"));
+                } catch (err) {
+                    showStatus(err.message || t("status_maintenance_delete_error"), true);
+                }
+            });
+            li.appendChild(delBtn);
+            maintenanceListEl.appendChild(li);
+        }
+    } catch (err) {
+        console.error("Error refreshing maintenance rules:", err);
+    }
+}
+
+if (maintenanceForm) {
+    maintenanceForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const folder = document.getElementById("maintenance-folder").value.trim();
+        const age = document.getElementById("maintenance-age").value.trim();
+        if (!folder || !age) return;
+        try {
+            await fetchJSON("/api/maintenance/rules", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    folder: folder,
+                    directory_path: folder,
+                    max_age_days: parseInt(age, 10)
+                }),
+            });
+            maintenanceForm.reset();
+            await refreshMaintenance();
+            showStatus(t("status_maintenance_saved"));
+        } catch (err) {
+            showStatus(err.message || t("status_maintenance_save_error"), true);
+        }
+    });
+}
+
+if (btnRunMaintenance) {
+    btnRunMaintenance.addEventListener("click", async () => {
+        btnRunMaintenance.disabled = true;
+        showStatus(t("status_maintenance_running"));
+        try {
+            const data = await fetchJSON("/api/maintenance/run", { method: "POST" });
+            const count = data.deleted !== undefined ? data.deleted : 0;
+            showStatus(t("status_maintenance_run_done").replace("{count}", count));
+        } catch (err) {
+            showStatus(err.message || t("status_maintenance_run_error"), true);
+        } finally {
+            btnRunMaintenance.disabled = false;
+        }
+    });
+}
+
 // ---- deduplicación (buscar y limpiar duplicados) ----------------------------
 
 let duplicateGroups = [];
@@ -1025,6 +1145,7 @@ for (const tabBtn of document.querySelectorAll(".tab-btn")) {
         if (tabBtn.dataset.tab === "history") refreshHistory();
         if (tabBtn.dataset.tab === "general") refreshGeneralSettings();
         if (tabBtn.dataset.tab === "duplicates") scanDuplicates();
+        if (tabBtn.dataset.tab === "maintenance") refreshMaintenance();
     });
 }
 
@@ -1043,7 +1164,7 @@ if (langSelect) {
         currentLang = e.target.value;
         localStorage.setItem("sortix_lang", currentLang);
         applyLanguage();
-        await Promise.all([refreshTopics(), refreshRules(), loadTree()]);
+        await Promise.all([refreshTopics(), refreshRules(), refreshMaintenance(), loadTree()]);
         renderBreadcrumbs();
         await renderContent();
     });
@@ -1057,7 +1178,7 @@ if (themeBtn) {
 async function init() {
     applyLanguage();
     updateThemeButton();
-    await Promise.all([refreshStatus(), loadTree(), refreshTopics(), refreshRules(), refreshGeneralSettings()]);
+    await Promise.all([refreshStatus(), loadTree(), refreshTopics(), refreshRules(), refreshGeneralSettings(), refreshMaintenance()]);
     renderBreadcrumbs();
     await renderContent();
     setInterval(refreshStatus, 5000);

@@ -6,11 +6,14 @@ import datetime
 import hashlib
 import json
 import logging
+import os
 import re
 import shutil
+import time
 from pathlib import Path
 
 from app import db
+from app.browser import resolve_safe_path
 from app.classifier import classify, normalize, _extract_content
 from app.security import safe_destination_dir
 from config.settings import HOME_DIR, IGNORED_SUFFIXES
@@ -277,3 +280,63 @@ def undo_move(move_id: int) -> tuple[dict | None, str | None]:
         "source": move["destination"],
         "destination": str(final_orig),
     }, None
+
+
+def run_maintenance_cleanup() -> list[dict]:
+    """Recorre las rutas de las reglas de mantenimiento activas y elimina
+    los archivos cuya antigüedad supera la indicada.
+    Retorna la lista de archivos eliminados."""
+    deleted_files = []
+    # 1. Obtener todas las reglas activas
+    rules = db.list_maintenance_rules()
+    active_rules = [r for r in rules if r.get("active", 1)]
+
+    current_time = time.time()
+
+    for rule in active_rules:
+        folder_str = rule.get("folder")
+        max_age_days = rule.get("max_age_days")
+        if not folder_str or max_age_days is None:
+            continue
+
+        # 2. Validar ruta
+        resolved_dir = resolve_safe_path(folder_str)
+        if not resolved_dir or not resolved_dir.exists() or not resolved_dir.is_dir():
+            logger.warning("Ruta de mantenimiento invalida o insegura: %s", folder_str)
+            continue
+
+        # 3. Recorrer de forma recursiva
+        for root, dirs, files in os.walk(resolved_dir):
+            for file in files:
+                file_path = Path(root) / file
+                # Segunda validacion de seguridad para cada archivo recorrido (evitar escape por enlaces simbolicos o similares)
+                resolved_file_path = resolve_safe_path(str(file_path))
+                if not resolved_file_path:
+                    continue
+                
+                try:
+                    stat_info = resolved_file_path.stat()
+                    # Comprobar la edad
+                    age_seconds = current_time - stat_info.st_mtime
+                    age_days = age_seconds / 86400
+                    if age_days > max_age_days:
+                        # Eliminar el archivo
+                        resolved_file_path.unlink()
+                        # Registrar en moves_log
+                        db.log_move(
+                            filename=resolved_file_path.name,
+                            source=str(resolved_file_path),
+                            destination="DELETED",
+                            category="mantenimiento"
+                        )
+                        deleted_files.append({
+                            "filename": resolved_file_path.name,
+                            "path": str(resolved_file_path),
+                            "age_days": round(age_days, 2)
+                        })
+                        logger.info("Archivo de mantenimiento eliminado: %s (edad: %.2f dias)", resolved_file_path, age_days)
+                except OSError as exc:
+                    logger.error("Error al procesar/eliminar %s en mantenimiento: %s", file_path, exc)
+
+    return deleted_files
+
