@@ -618,7 +618,7 @@ function updateThemeButton() {
     }
 }
 
-function toggleTheme(e) {
+function toggleTheme() {
     const nextTheme = currentTheme === "dark" ? "light" : "dark";
     
     const switchTheme = () => {
@@ -634,38 +634,9 @@ function toggleTheme(e) {
 
     if (!document.startViewTransition) {
         switchTheme();
-        return;
+    } else {
+        document.startViewTransition(switchTheme);
     }
-
-    const btn = document.getElementById("btn-theme");
-    const rect = btn ? btn.getBoundingClientRect() : { left: window.innerWidth / 2, top: 0, width: 0, height: 0 };
-    const x = (e && e.clientX) ? e.clientX : (rect.left + rect.width / 2);
-    const y = (e && e.clientY) ? e.clientY : (rect.top + rect.height / 2);
-    const endRadius = Math.hypot(
-        Math.max(x, window.innerWidth - x),
-        Math.max(y, window.innerHeight - y)
-    );
-
-    const transition = document.startViewTransition(() => {
-        switchTheme();
-    });
-
-    transition.ready.then(() => {
-        const clipPath = [
-            `circle(0px at ${x}px ${y}px)`,
-            `circle(${endRadius}px at ${x}px ${y}px)`
-        ];
-        document.documentElement.animate(
-            {
-                clipPath: currentTheme === "light" ? clipPath : clipPath.reverse()
-            },
-            {
-                duration: 1200,
-                easing: "cubic-bezier(0.25, 1, 0.5, 1)",
-                pseudoElement: currentTheme === "light" ? "::view-transition-new(root)" : "::view-transition-old(root)"
-            }
-        );
-    });
 }
 
 const ICONS = {
