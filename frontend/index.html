@@ -10,7 +10,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script>
-        // Prevent theme flash on startup
         const theme = localStorage.getItem("sortix_theme") || "dark";
         if (theme === "light") {
             document.documentElement.classList.add("light");
@@ -29,38 +28,31 @@
                         <polyline points="2 12 12 17 22 12"></polyline>
                     </svg>
                 </div>
-                <div class="brand-titles">
-                    <span class="brand-name">Sortix</span>
-                    <span class="brand-badge">v2.0 Local AI</span>
-                </div>
+                <span class="brand-name">Sortix</span>
             </div>
 
             <div id="breadcrumbs"></div>
 
             <div id="toolbar-actions">
-                <!-- Auto-Organize Live Protection Toggle -->
+                <!-- Auto-Organize Toggle -->
                 <div class="patrol-group" title="Organización automática en tiempo real">
                     <span class="toolbar-label" data-i18n="patrol_label">Auto-Organizar</span>
                     <label class="switch" data-i18n-title="patrol_title">
                         <input type="checkbox" id="patrol-toggle">
                         <span class="slider"></span>
                     </label>
-                    <span id="patrol-status-pill" class="status-pill active">
-                        <span class="dot"></span>
-                        <span id="patrol-status-text" data-i18n="patrol_on">ACTIVO</span>
-                    </span>
                 </div>
 
                 <div class="toolbar-divider"></div>
 
-                <!-- Primary Action Buttons with Left Icons -->
+                <!-- Primary Action Buttons with Inline SVG Icons -->
                 <button type="button" id="btn-organize" class="btn btn-primary" data-i18n-title="organize_title" title="Organizar descargas inmediatamente">
-                    <span class="btn-icon">⚡</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                     <span data-i18n="organize_btn">Organizar ahora</span>
                 </button>
 
                 <button type="button" id="btn-simulate" class="btn btn-secondary" data-i18n-title="simulate_title" title="Previsualizar qué archivos se moverían sin tocar nada">
-                    <span class="btn-icon">🧪</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     <span data-i18n="simulate_btn">Simular (Prueba)</span>
                 </button>
 
@@ -68,7 +60,7 @@
 
                 <!-- Multi-Language Selector Dropdown -->
                 <div class="lang-select-wrapper" title="Seleccionar idioma / Select language">
-                    <span class="lang-icon">🌐</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                     <select id="lang-select" class="lang-select">
                         <option value="es">ES (Español)</option>
                         <option value="en">EN (English)</option>
@@ -81,19 +73,21 @@
 
                 <!-- Theme Toggle Button (rdsx style) -->
                 <button type="button" id="btn-theme" class="btn btn-icon-text" data-i18n-title="theme_title" title="Cambiar tema claro/oscuro">
-                    <span id="theme-btn-icon" class="btn-icon">☀️</span>
+                    <span id="theme-btn-svg-container">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                    </span>
                     <span id="theme-btn-label">Claro</span>
                 </button>
 
                 <!-- Onboarding Help Button -->
                 <button type="button" id="btn-help" class="btn btn-icon-text" data-i18n-title="help_title" title="Ver tutorial y guía de uso">
-                    <span class="btn-icon">❓</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     <span data-i18n="help_btn">Ayuda</span>
                 </button>
 
                 <!-- Settings Modal Button -->
-                <button type="button" id="btn-settings" class="btn btn-icon-text btn-highlight" data-i18n-title="settings_title" title="Configurar reglas, temas, deduplicador y mantenimiento">
-                    <span class="btn-icon">⚙️</span>
+                <button type="button" id="btn-settings" class="btn btn-icon-text btn-highlight" data-i18n-title="settings_title" title="Configurar reglas, temas, IA local y mantenimiento">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1z"/></svg>
                     <span data-i18n="settings_btn">Ajustes y Reglas</span>
                 </button>
             </div>
@@ -111,7 +105,9 @@
 
                 <div id="sidebar-footer">
                     <div class="stats-card">
-                        <div class="stats-icon-badge">📊</div>
+                        <div class="stats-icon-badge">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                        </div>
                         <div class="stats-info">
                             <span class="stats-title" data-i18n="organized_count_prefix">Archivos organizados</span>
                             <span id="files-organized-count" class="stats-count">0</span>
@@ -124,7 +120,9 @@
             <main id="content">
                 <div id="file-grid"></div>
                 <div id="empty-state" class="empty-state-card" hidden>
-                    <div class="empty-icon-badge">📂</div>
+                    <div class="empty-icon-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                    </div>
                     <h3 data-i18n="empty_state_title">Carpeta sin archivos</h3>
                     <p data-i18n="empty_state">Esta carpeta está vacía (o aún no se ha creado).</p>
                 </div>
@@ -142,7 +140,7 @@
         <div class="onboarding-wrapper">
             <div class="onboarding-header">
                 <div class="onboarding-top-bar">
-                    <div class="onboarding-badge">Sortix v2.0</div>
+                    <div class="onboarding-badge">Sortix</div>
                     <span id="onboard-step-badge" class="step-badge">Paso 1 de 4</span>
                 </div>
                 <button type="button" class="btn-close-modal" id="btn-close-welcome" title="Cerrar">&times;</button>
@@ -165,7 +163,7 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                     </div>
                     <h2 data-i18n="slide2_title">Auto-Organización en Tiempo Real</h2>
-                    <p data-i18n="slide2_desc">Sortix monitoriza tu carpeta de Descargas. En cuanto termina una descarga (.crdownload / .part), analiza el archivo y lo traslada fuera de Descargas a su carpeta correspondiente (Imágenes, Vídeos, Documentos, Música...). ¡Tu carpeta de descargas estará siempre limpia!</p>
+                    <p data-i18n="slide2_desc">Sortix monitoriza tu carpeta de Descargas. En cuanto termina una descarga (.crdownload / .part), analiza el archivo y lo traslada automáticamente a su destino (Imágenes, Vídeos, Documentos, Música...). ¡Tu carpeta de descargas estará siempre limpia!</p>
                 </div>
 
                 <!-- Slide 3 -->
@@ -173,8 +171,8 @@
                     <div class="slide-illustration">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                     </div>
-                    <h2 data-i18n="slide3_title">Reglas Scratch, OCR y Metadatos</h2>
-                    <p data-i18n="slide3_desc">Define reglas visuales por extensión, nombre, tamaño o antigüedad (días). Sortix realiza escaneo OCR en imágenes y lee metadatos EXIF (fotos) e ID3 (música). ¡También puedes conectar Ollama para IA local!</p>
+                    <h2 data-i18n="slide3_title">Reglas Scratch, OCR e IA Local (Ollama)</h2>
+                    <p data-i18n="slide3_desc">Define reglas visuales por extensión, nombre, tamaño o antigüedad (días). Sortix realiza escaneo OCR en imágenes y lee metadatos EXIF (fotos) e ID3 (música). ¡Integra IA local con Ollama para clasificar sin internet!</p>
                 </div>
 
                 <!-- Slide 4 -->
@@ -210,7 +208,7 @@
     <dialog id="simulate-modal" class="modal-dialog">
         <div class="simulate-header">
             <div class="simulate-title-group">
-                <span class="btn-icon">🧪</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 <h2 data-i18n="simulate_modal_title">Resultados de la Simulación</h2>
             </div>
             <button type="button" id="btn-close-simulate" class="btn-close-modal" title="Cerrar">&times;</button>
@@ -226,7 +224,7 @@
     <dialog id="settings-modal" class="modal-dialog">
         <div id="settings-header">
             <div class="settings-title-group">
-                <span class="btn-icon">⚙️</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1z"/></svg>
                 <h2 data-i18n="settings_title_modal">Ajustes de Sortix</h2>
             </div>
             <button type="button" id="btn-close-settings" class="btn-close-modal" data-i18n-title="close_title" title="Cerrar">&times;</button>
@@ -235,6 +233,7 @@
         <div id="settings-tabs">
             <button type="button" class="tab-btn active" data-tab="topics" data-i18n="tab_topics">Temas</button>
             <button type="button" class="tab-btn" data-tab="rules" data-i18n="tab_rules">Reglas por extensión</button>
+            <button type="button" class="tab-btn" data-tab="ai" data-i18n="tab_ai">🤖 IA Local (Ollama)</button>
             <button type="button" class="tab-btn" data-tab="history" data-i18n="tab_history">Historial</button>
             <button type="button" class="tab-btn" data-tab="duplicates" data-i18n="tab_duplicates">Deduplicar</button>
             <button type="button" class="tab-btn" data-tab="watched" data-i18n="tab_watched">Carpetas vigiladas</button>
@@ -294,6 +293,27 @@
 
                 <button type="submit" class="btn btn-primary" data-i18n="add_rule_btn">Añadir regla</button>
             </form>
+        </section>
+
+        <!-- LOCAL AI (OLLAMA) TAB -->
+        <section id="tab-ai" class="tab-panel" hidden>
+            <p class="hint" data-i18n="ai_hint">
+                Conecta Sortix a tu servidor de IA Local Ollama para clasificar archivos mediante modelos de lenguaje (LLM) sin enviar ningún dato a la nube.
+            </p>
+            <div class="settings-form">
+                <div class="status-pill active" id="ai-status-badge" style="width: fit-content;">
+                    <span class="dot"></span>
+                    <span id="ai-status-text">Ollama (Modo Heurístico Activo / Local)</span>
+                </div>
+
+                <label for="ai-url-input">URL del servidor Ollama Local</label>
+                <input type="text" id="ai-url-input" value="http://localhost:11434">
+
+                <label for="ai-model-input">Modelo Ollama deseado</label>
+                <input type="text" id="ai-model-input" value="llama3" placeholder="ej. llama3, mistral, gemma">
+
+                <button type="button" id="btn-test-ai" class="btn btn-primary">🔍 Probar conexión con Ollama</button>
+            </div>
         </section>
 
         <section id="tab-history" class="tab-panel" hidden>

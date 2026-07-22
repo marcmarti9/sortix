@@ -412,6 +412,146 @@ const TRANSLATIONS = {
         stats_activity_title: "Activity (last 30 days)",
         stats_no_data: "Not enough data yet.",
         stats_load_error: "Could not load statistics."
+    },
+    zh: {
+        patrol_label: "自动整理",
+        patrol_title: "实时整理下载文件夹",
+        organize_btn: "立即整理",
+        settings_title: "设置",
+        organized_count_prefix: "已整理文件",
+        empty_state: "此文件夹为空",
+        settings_title_modal: "Sortix 设置",
+        close_title: "关闭",
+        tab_topics: "主题",
+        tab_rules: "扩展名规则",
+        tab_ai: "🤖 本地 AI (Ollama)",
+        home: "首页",
+        downloads: "下载",
+        images: "图片",
+        videos: "视频",
+        music: "音乐",
+        compressed: "压缩包",
+        installers: "安装包",
+        documents: "文档",
+        other: "其他",
+        theme_dark: "暗色",
+        theme_light: "亮色",
+        help_btn: "帮助",
+        settings_btn: "设置与规则",
+        simulate_btn: "模拟测试",
+        export_rules_btn: "导出规则 (JSON)",
+        import_rules_btn: "导入规则 (JSON)",
+        tab_duplicates: "去重",
+        tab_watched: "监控文件夹",
+        tab_stats: "统计",
+        tab_maintenance: "维护",
+        tab_history: "历史记录",
+        tab_general: "通用设置"
+    },
+    hi: {
+        patrol_label: "ऑटो-व्यवस्थित",
+        patrol_title: "रियल-टाइम में डाउनलोड व्यवस्थित करें",
+        organize_btn: "अभी व्यवस्थित करें",
+        settings_title: "सेटिंग्स",
+        organized_count_prefix: "व्यवस्थित फ़ाइलें",
+        empty_state: "यह फ़ोल्डर खाली है",
+        settings_title_modal: "Sortix सेटिंग्स",
+        close_title: "बंद करें",
+        tab_topics: "विषय",
+        tab_rules: "एक्सटेंशन नियम",
+        tab_ai: "🤖 लोकल AI (Ollama)",
+        home: "होम",
+        downloads: "डाउनलोड",
+        images: "चित्र",
+        videos: "वीडियो",
+        music: "संगीत",
+        compressed: "कंप्रेस्ड",
+        installers: "इंस्टॉलर",
+        documents: "दस्तावेज़",
+        other: "अन्य",
+        theme_dark: "डार्क",
+        theme_light: "लाइट",
+        help_btn: "सहायता",
+        settings_btn: "सेटिंग्स और नियम",
+        simulate_btn: "सिमुलेशन",
+        export_rules_btn: "नियम निर्यात करें",
+        import_rules_btn: "नियम आयात करें",
+        tab_duplicates: "डुप्लिकेट",
+        tab_watched: "निगरानी फ़ोल्डर",
+        tab_stats: "आंकड़े",
+        tab_maintenance: "रखरखाव",
+        tab_history: "इतिहास",
+        tab_general: "सामान्य"
+    },
+    fr: {
+        patrol_label: "Auto-Organiser",
+        patrol_title: "Organisation automatique des téléchargements en temps réel",
+        organize_btn: "Organiser maintenant",
+        settings_title: "Paramètres",
+        organized_count_prefix: "Fichiers organisés",
+        empty_state: "Ce dossier est vide",
+        settings_title_modal: "Paramètres de Sortix",
+        close_title: "Fermer",
+        tab_topics: "Thèmes",
+        tab_rules: "Règles par extension",
+        tab_ai: "🤖 IA Locale (Ollama)",
+        home: "Accueil",
+        downloads: "Téléchargements",
+        images: "Images",
+        videos: "Vidéos",
+        music: "Musique",
+        compressed: "Archives",
+        installers: "Installateurs",
+        documents: "Documents",
+        other: "Autres",
+        theme_dark: "Sombre",
+        theme_light: "Clair",
+        help_btn: "Aide",
+        settings_btn: "Paramètres & Règles",
+        simulate_btn: "Simuler (Test)",
+        export_rules_btn: "Exporter règles (JSON)",
+        import_rules_btn: "Importer règles (JSON)",
+        tab_duplicates: "Dédupliquer",
+        tab_watched: "Dossiers surveillés",
+        tab_stats: "Statistiques",
+        tab_maintenance: "Maintenance",
+        tab_history: "Historique",
+        tab_general: "Général"
+    },
+    de: {
+        patrol_label: "Auto-Organisieren",
+        patrol_title: "Downloads in Echtzeit automatisch organisieren",
+        organize_btn: "Jetzt organisieren",
+        settings_title: "Einstellungen",
+        organized_count_prefix: "Organisierte Dateien",
+        empty_state: "Dieser Ordner ist leer",
+        settings_title_modal: "Sortix Einstellungen",
+        close_title: "Schließen",
+        tab_topics: "Themen",
+        tab_rules: "Regeln nach Erweiterung",
+        tab_ai: "🤖 Lokale KI (Ollama)",
+        home: "Startseite",
+        downloads: "Downloads",
+        images: "Bilder",
+        videos: "Videos",
+        music: "Musik",
+        compressed: "Archive",
+        installers: "Installer",
+        documents: "Dokumente",
+        other: "Sonstiges",
+        theme_dark: "Dunkel",
+        theme_light: "Hell",
+        help_btn: "Hilfe",
+        settings_btn: "Einstellungen & Regeln",
+        simulate_btn: "Simulieren (Test)",
+        export_rules_btn: "Regeln exportieren",
+        import_rules_btn: "Regeln importieren",
+        tab_duplicates: "Duplikate",
+        tab_watched: "Überwachte Ordner",
+        tab_stats: "Statistiken",
+        tab_maintenance: "Wartung",
+        tab_history: "Verlauf",
+        tab_general: "Allgemein"
     }
 };
 
@@ -468,15 +608,17 @@ function applyLanguage() {
 let currentTheme = localStorage.getItem("sortix_theme") || "dark";
 
 function updateThemeButton() {
-    const iconEl = document.getElementById("theme-btn-icon");
+    const container = document.getElementById("theme-btn-svg-container");
     const labelEl = document.getElementById("theme-btn-label");
-    if (iconEl && labelEl) {
-        iconEl.textContent = currentTheme === "dark" ? "☀️" : "🌙";
-        labelEl.textContent = currentTheme === "dark" ? t("theme_light") : t("theme_dark");
+    if (labelEl) {
+        labelEl.textContent = currentTheme === "dark" ? t("theme_light", "Claro") : t("theme_dark", "Oscuro");
+    }
+    if (container) {
+        container.innerHTML = currentTheme === "dark" ? svgIcon("sun") : svgIcon("moon");
     }
 }
 
-function toggleTheme() {
+function toggleTheme(e) {
     const nextTheme = currentTheme === "dark" ? "light" : "dark";
     
     const switchTheme = () => {
@@ -492,9 +634,38 @@ function toggleTheme() {
 
     if (!document.startViewTransition) {
         switchTheme();
-    } else {
-        document.startViewTransition(switchTheme);
+        return;
     }
+
+    const btn = document.getElementById("btn-theme");
+    const rect = btn ? btn.getBoundingClientRect() : { left: window.innerWidth / 2, top: 0, width: 0, height: 0 };
+    const x = (e && e.clientX) ? e.clientX : (rect.left + rect.width / 2);
+    const y = (e && e.clientY) ? e.clientY : (rect.top + rect.height / 2);
+    const endRadius = Math.hypot(
+        Math.max(x, window.innerWidth - x),
+        Math.max(y, window.innerHeight - y)
+    );
+
+    const transition = document.startViewTransition(() => {
+        switchTheme();
+    });
+
+    transition.ready.then(() => {
+        const clipPath = [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${endRadius}px at ${x}px ${y}px)`
+        ];
+        document.documentElement.animate(
+            {
+                clipPath: currentTheme === "light" ? clipPath : clipPath.reverse()
+            },
+            {
+                duration: 1200,
+                easing: "cubic-bezier(0.25, 1, 0.5, 1)",
+                pseudoElement: currentTheme === "light" ? "::view-transition-new(root)" : "::view-transition-old(root)"
+            }
+        );
+    });
 }
 
 const ICONS = {
