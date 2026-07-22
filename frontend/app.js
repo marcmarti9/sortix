@@ -4,8 +4,8 @@
 
 const TRANSLATIONS = {
     es: {
-        patrol_label: "Patrulla Activa",
-        patrol_title: "Vigilar Descargas en tiempo real",
+        patrol_label: "Auto-Organizar",
+        patrol_title: "Organización automática de Descargas en tiempo real",
         organize_btn: "Organizar ahora",
         settings_title: "Ajustes",
         organized_count_prefix: "Archivos organizados",

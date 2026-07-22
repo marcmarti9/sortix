@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sortix — Intelligent File Organizer</title>
+    <title>Sortix — File Explorer Organizer</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,7 +40,7 @@
             <div id="toolbar-actions">
                 <!-- Auto-Organize Live Protection Toggle -->
                 <div class="patrol-group" title="Organización automática en tiempo real">
-                    <span class="toolbar-label" data-i18n="patrol_label">Organización Automática</span>
+                    <span class="toolbar-label" data-i18n="patrol_label">Auto-Organizar</span>
                     <label class="switch" data-i18n-title="patrol_title">
                         <input type="checkbox" id="patrol-toggle">
                         <span class="slider"></span>
@@ -53,22 +53,22 @@
 
                 <div class="toolbar-divider"></div>
 
-                <!-- Primary Action Buttons with SVG Icons on Left -->
-                <button type="button" id="btn-organize" class="btn btn-primary" data-i18n-title="organize_title" title="Organizar descargas y carpetas inmediatamente">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                <!-- Primary Action Buttons with Left Icons -->
+                <button type="button" id="btn-organize" class="btn btn-primary" data-i18n-title="organize_title" title="Organizar descargas inmediatamente">
+                    <span class="btn-icon">⚡</span>
                     <span data-i18n="organize_btn">Organizar ahora</span>
                 </button>
 
-                <button type="button" id="btn-simulate" class="btn btn-secondary" data-i18n-title="simulate_title" title="Previsualizar qué archivos se moverían sin modificar nada">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <button type="button" id="btn-simulate" class="btn btn-secondary" data-i18n-title="simulate_title" title="Previsualizar qué archivos se moverían sin tocar nada">
+                    <span class="btn-icon">🧪</span>
                     <span data-i18n="simulate_btn">Simular (Prueba)</span>
                 </button>
 
                 <div class="toolbar-divider"></div>
 
-                <!-- Multi-Language Selector (Top 5 Languages: ES, EN, ZH, HI, FR, DE) -->
+                <!-- Multi-Language Selector Dropdown -->
                 <div class="lang-select-wrapper" title="Seleccionar idioma / Select language">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span class="lang-icon">🌐</span>
                     <select id="lang-select" class="lang-select">
                         <option value="es">ES (Español)</option>
                         <option value="en">EN (English)</option>
@@ -79,21 +79,21 @@
                     </select>
                 </div>
 
-                <!-- Theme Toggle Button -->
+                <!-- Theme Toggle Button (rdsx style) -->
                 <button type="button" id="btn-theme" class="btn btn-icon-text" data-i18n-title="theme_title" title="Cambiar tema claro/oscuro">
-                    <svg id="theme-btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-                    <span id="theme-btn-label">Oscuro</span>
+                    <span id="theme-btn-icon" class="btn-icon">☀️</span>
+                    <span id="theme-btn-label">Claro</span>
                 </button>
 
                 <!-- Onboarding Help Button -->
-                <button type="button" id="btn-help" class="btn btn-icon-text" data-i18n-title="help_title" title="Ver tutorial y guía de uso paso a paso">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <button type="button" id="btn-help" class="btn btn-icon-text" data-i18n-title="help_title" title="Ver tutorial y guía de uso">
+                    <span class="btn-icon">❓</span>
                     <span data-i18n="help_btn">Ayuda</span>
                 </button>
 
                 <!-- Settings Modal Button -->
                 <button type="button" id="btn-settings" class="btn btn-icon-text btn-highlight" data-i18n-title="settings_title" title="Configurar reglas, temas, deduplicador y mantenimiento">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1z"/></svg>
+                    <span class="btn-icon">⚙️</span>
                     <span data-i18n="settings_btn">Ajustes y Reglas</span>
                 </button>
             </div>
@@ -111,9 +111,7 @@
 
                 <div id="sidebar-footer">
                     <div class="stats-card">
-                        <div class="stats-icon-badge">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-                        </div>
+                        <div class="stats-icon-badge">📊</div>
                         <div class="stats-info">
                             <span class="stats-title" data-i18n="organized_count_prefix">Archivos organizados</span>
                             <span id="files-organized-count" class="stats-count">0</span>
@@ -126,9 +124,7 @@
             <main id="content">
                 <div id="file-grid"></div>
                 <div id="empty-state" class="empty-state-card" hidden>
-                    <div class="empty-icon-badge">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                    </div>
+                    <div class="empty-icon-badge">📂</div>
                     <h3 data-i18n="empty_state_title">Carpeta sin archivos</h3>
                     <p data-i18n="empty_state">Esta carpeta está vacía (o aún no se ha creado).</p>
                 </div>
@@ -168,8 +164,8 @@
                     <div class="slide-illustration">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                     </div>
-                    <h2 data-i18n="slide2_title">Organización Automática en Tiempo Real</h2>
-                    <p data-i18n="slide2_desc">Sortix monitoriza tu carpeta de Descargas y carpetas vigiladas. En cuanto termina una descarga (.crdownload / .part), analiza el archivo y lo traslada automáticamente a su destino en segundos.</p>
+                    <h2 data-i18n="slide2_title">Auto-Organización en Tiempo Real</h2>
+                    <p data-i18n="slide2_desc">Sortix monitoriza tu carpeta de Descargas. En cuanto termina una descarga (.crdownload / .part), analiza el archivo y lo traslada fuera de Descargas a su carpeta correspondiente (Imágenes, Vídeos, Documentos, Música...). ¡Tu carpeta de descargas estará siempre limpia!</p>
                 </div>
 
                 <!-- Slide 3 -->
@@ -214,7 +210,7 @@
     <dialog id="simulate-modal" class="modal-dialog">
         <div class="simulate-header">
             <div class="simulate-title-group">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <span class="btn-icon">🧪</span>
                 <h2 data-i18n="simulate_modal_title">Resultados de la Simulación</h2>
             </div>
             <button type="button" id="btn-close-simulate" class="btn-close-modal" title="Cerrar">&times;</button>
@@ -230,7 +226,7 @@
     <dialog id="settings-modal" class="modal-dialog">
         <div id="settings-header">
             <div class="settings-title-group">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1z"/></svg>
+                <span class="btn-icon">⚙️</span>
                 <h2 data-i18n="settings_title_modal">Ajustes de Sortix</h2>
             </div>
             <button type="button" id="btn-close-settings" class="btn-close-modal" data-i18n-title="close_title" title="Cerrar">&times;</button>

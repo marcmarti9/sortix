@@ -31,13 +31,13 @@
     "compressed": {
       "label": "Compressed",
       "icon": "archive",
-      "folder": "Downloads/Compressed",
+      "folder": "Archives",
       "extensions": ["zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz"]
     },
     "installers": {
       "label": "Installers",
       "icon": "installer",
-      "folder": "Downloads/Installers",
+      "folder": "Installers",
       "extensions": ["exe", "msi", "deb", "rpm", "appimage", "dmg", "pkg", "apk"]
     },
     "documents": {
@@ -56,7 +56,7 @@
     "other": {
       "label": "Other",
       "icon": "other",
-      "folder": "Downloads/Other",
+      "folder": "Documents/Other",
       "extensions": []
     }
   },
