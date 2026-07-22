@@ -6,6 +6,7 @@ Ejecutar:  ./.venv/bin/python tests/test_all.py   (desde backend/)
 """
 
 import os
+import shutil
 import sqlite3
 import sys
 import tempfile
@@ -449,4 +450,362 @@ days = [row["day"] for row in stats["by_day"]]
 assert days == sorted(days), days  # orden ascendente para el grafico
 print("OK estadisticas")
 
+# ---- patrulla multi-carpeta en tiempo real y actualizaciones dinamicas ----
+from app.server import patrol, scheduler
+
+dir_a = FAKE_HOME / "VigiladaA"
+dir_b = FAKE_HOME / "VigiladaB"
+dir_a.mkdir(exist_ok=True)
+dir_b.mkdir(exist_ok=True)
+
+r_a = client.post("/api/watched-folders", json={"folder_path": str(dir_a)})
+assert r_a.status_code == 201, r_a.data
+wf_a = r_a.get_json()
+
+r_b = client.post("/api/watched-folders", json={"folder_path": str(dir_b)})
+assert r_b.status_code == 201, r_b.data
+wf_b = r_b.get_json()
+
+patrol.start()
+assert patrol.is_active() is True
+
+watched_dirs = patrol.get_watched_directories()
+assert settings.DOWNLOADS_DIR.resolve() in watched_dirs, watched_dirs
+assert dir_a.resolve() in watched_dirs, watched_dirs
+assert dir_b.resolve() in watched_dirs, watched_dirs
+
+# Actualizacion dinamica: anadir carpeta C mientras la patrulla esta activa
+dir_c = FAKE_HOME / "VigiladaC"
+dir_c.mkdir(exist_ok=True)
+r_c = client.post("/api/watched-folders", json={"folder_path": str(dir_c)})
+assert r_c.status_code == 201, r_c.data
+wf_c = r_c.get_json()
+
+watched_dirs_2 = patrol.get_watched_directories()
+assert dir_c.resolve() in watched_dirs_2, watched_dirs_2
+
+# Actualizacion dinamica: eliminar carpeta A mientras la patrulla esta activa
+r_del = client.delete(f"/api/watched-folders/{wf_a['id']}")
+assert r_del.status_code == 204
+
+watched_dirs_3 = patrol.get_watched_directories()
+assert dir_a.resolve() not in watched_dirs_3, watched_dirs_3
+
+# Intento de path traversal al anadir carpeta vigilada debe ser rechazado
+r_bad = client.post("/api/watched-folders", json={"folder_path": "../../etc"})
+assert r_bad.status_code == 400, r_bad.status_code
+
+patrol.stop()
+assert patrol.is_active() is False
+print("OK patrulla multi-carpeta y actualizaciones dinamicas")
+
+# ---- programador de tareas (Task Scheduler) ----
+# GET /api/scheduler/config
+r_sched = client.get("/api/scheduler/config")
+assert r_sched.status_code == 200, r_sched.data
+cfg = r_sched.get_json()
+assert "enabled" in cfg
+assert "interval_minutes" in cfg
+
+# POST /api/scheduler/config invalido
+r_invalid = client.post("/api/scheduler/config", json={"interval_minutes": -10})
+assert r_invalid.status_code == 400, r_invalid.status_code
+r_invalid_str = client.post("/api/scheduler/config", json={"interval_minutes": "abc"})
+assert r_invalid_str.status_code == 400, r_invalid_str.status_code
+
+# POST /api/scheduler/config valido
+r_update = client.post("/api/scheduler/config", json={"enabled": True, "interval_minutes": 30})
+assert r_update.status_code == 200, r_update.data
+cfg_updated = r_update.get_json()
+assert cfg_updated["enabled"] is True
+assert cfg_updated["interval_minutes"] == 30
+
+# Verificacion de start/stop del scheduler
+scheduler.start()
+assert scheduler.is_running() is True
+scheduler.stop()
+assert scheduler.is_running() is False
+
+# Prueba de ejecucion de barrido de tareas (run_now)
+(dir_b / "doc_sched.pdf").write_bytes(b"%PDF-1.4 test scheduler")
+res_run = scheduler.run_now()
+assert isinstance(res_run, dict)
+assert res_run["files_organized"] >= 1
+assert not (dir_b / "doc_sched.pdf").exists()
+
+# Limpieza de carpetas de prueba
+client.delete(f"/api/watched-folders/{wf_b['id']}")
+client.delete(f"/api/watched-folders/{wf_c['id']}")
+
+print("OK programador de tareas (scheduler)")
+
+# ---- Fase 2: age_days y descompresion segura (Zip-Slip) ----
+from app.organizer import check_conditions, unpack_archive
+import json
+import zipfile
+import tarfile
+import io
+
+# 1) Prueba de check_conditions con age_days
+test_age_file = downloads / "age_test.txt"
+test_age_file.write_text("hello age")
+now_ts = time.time()
+# Establecer fecha de modificacion a hace 10 dias
+os.utime(test_age_file, (now_ts - 10 * 86400, now_ts - 10 * 86400))
+
+cond_gt_5 = json.dumps([{"field": "age_days", "operator": "gt", "value": "5"}])
+cond_lt_5 = json.dumps([{"field": "age_days", "operator": "lt", "value": "5"}])
+cond_gte_10 = json.dumps([{"field": "age_days", "operator": "gte", "value": "10"}])
+cond_lte_9 = json.dumps([{"field": "age_days", "operator": "lte", "value": "9"}])
+
+assert check_conditions(test_age_file, "txt", cond_gt_5) is True
+assert check_conditions(test_age_file, "txt", cond_lt_5) is False
+assert check_conditions(test_age_file, "txt", cond_gte_10) is True
+assert check_conditions(test_age_file, "txt", cond_lte_9) is False
+
+test_age_file.unlink()
+print("OK condicion age_days en check_conditions")
+
+# 2) Descompresion segura de Zip y Tar + prevencion de Zip-Slip
+archive_test_dir = downloads / "ArchiveTest"
+archive_test_dir.mkdir(parents=True, exist_ok=True)
+
+# 2a) Zip valido
+valid_zip = archive_test_dir / "valid.zip"
+with zipfile.ZipFile(valid_zip, "w") as zf:
+    zf.writestr("inner.txt", "contenido zip valido")
+
+extract_target_zip = archive_test_dir / "valid_extracted"
+unpack_archive(valid_zip, extract_target_zip)
+assert (extract_target_zip / "inner.txt").exists()
+assert (extract_target_zip / "inner.txt").read_text() == "contenido zip valido"
+
+# 2b) Tar valido
+valid_tar = archive_test_dir / "valid.tar.gz"
+with tarfile.open(valid_tar, "w:gz") as tf:
+    ti = tarfile.TarInfo(name="inner_tar.txt")
+    data = b"contenido tar valido"
+    ti.size = len(data)
+    tf.addfile(ti, io.BytesIO(data))
+
+extract_target_tar = archive_test_dir / "valid_tar_extracted"
+unpack_archive(valid_tar, extract_target_tar)
+assert (extract_target_tar / "inner_tar.txt").exists()
+assert (extract_target_tar / "inner_tar.txt").read_bytes() == b"contenido tar valido"
+
+# 2c) Zip-Slip en ZIP
+malicious_zip = archive_test_dir / "malicious.zip"
+with zipfile.ZipFile(malicious_zip, "w") as zf:
+    zf.writestr("../evil_zip.txt", "malicious payload")
+
+try:
+    unpack_archive(malicious_zip, archive_test_dir / "zip_out")
+    assert False, "Zip-Slip en ZIP debio lanzar ValueError"
+except ValueError as e:
+    assert "Zip-Slip" in str(e)
+assert not (archive_test_dir / "evil_zip.txt").exists()
+
+# 2d) Zip-Slip en TAR
+malicious_tar = archive_test_dir / "malicious.tar"
+with tarfile.open(malicious_tar, "w") as tf:
+    ti = tarfile.TarInfo(name="../evil_tar.txt")
+    data = b"malicious payload"
+    ti.size = len(data)
+    tf.addfile(ti, io.BytesIO(data))
+
+try:
+    unpack_archive(malicious_tar, archive_test_dir / "tar_out")
+    assert False, "Zip-Slip en TAR debio lanzar ValueError"
+except ValueError as e:
+    assert "Zip-Slip" in str(e)
+assert not (archive_test_dir / "evil_tar.txt").exists()
+
+shutil.rmtree(archive_test_dir)
+print("OK descompresion segura de Zip/Tar y prevencion Zip-Slip")
+
+# ---- Pruebas de Deduplicación Optimizada (Fast-Hash / Full Hash) y Rutas Arbitrarias ----
+custom_dup_dir = downloads / "custom_dup_folder"
+custom_dup_dir.mkdir(exist_ok=True)
+
+# 1. Dos archivos de >128KB idénticos (mismo tamaño, mismo fast-hash, mismo full SHA256)
+large_content_1 = b"A" * 70000 + b"MIDDLE1" + b"B" * 70000
+large_content_2 = b"A" * 70000 + b"MIDDLE1" + b"B" * 70000
+
+# 2. Un archivo con mismo tamaño y mismo fast-hash (primeros 64K y últimos 64K idénticos) pero diferente contenido intermedio
+large_content_diff_mid = b"A" * 70000 + b"MIDDLE2" + b"B" * 70000
+
+(custom_dup_dir / "large_dup1.bin").write_bytes(large_content_1)
+(custom_dup_dir / "large_dup2.bin").write_bytes(large_content_2)
+(custom_dup_dir / "large_diff_mid.bin").write_bytes(large_content_diff_mid)
+
+try:
+    # Probar endpoint POST /api/duplicates con la carpeta personalizada
+    r = client.post("/api/duplicates", json={"directories": ["Downloads/custom_dup_folder"]})
+    assert r.status_code == 200, (r.status_code, r.data)
+    dups_custom = r.get_json()
+
+    # Debe encontrar solo el grupo de los 2 archivos idénticos y descartar el que difiere en el medio
+    assert len(dups_custom) == 1, dups_custom
+    files_in_dup = [f["name"] for f in dups_custom[0]["files"]]
+    assert "large_dup1.bin" in files_in_dup
+    assert "large_dup2.bin" in files_in_dup
+    assert "large_diff_mid.bin" not in files_in_dup
+
+    # Probar ruta no permitida / insegura en POST /api/duplicates
+    r_bad = client.post("/api/duplicates", json={"directories": ["../../etc"]})
+    assert r_bad.status_code == 400
+finally:
+    shutil.rmtree(custom_dup_dir, ignore_errors=True)
+
+print("OK deduplicación optimizada (fast-hash) y rutas arbitrarias")
+
+# ---- Pruebas de Exportación e Importación de Reglas (JSON) ----
+db.add_rule("exptest", "Documents/ExportTest", rename_pattern="{YYYY}_{OriginalName}.{ext}")
+db.add_maintenance_rule("Downloads/ExpMaint", 20, 1)
+
+# 1. Exportar
+r_exp = client.get("/api/rules/export")
+assert r_exp.status_code == 200
+exported = r_exp.get_json()
+assert "rules" in exported
+assert "maintenance_rules" in exported
+
+exp_rule = next((r for r in exported["rules"] if r["extension"] == "exptest"), None)
+assert exp_rule is not None
+assert exp_rule["destination"] == "Documents/ExportTest"
+
+exp_maint = next((m for m in exported["maintenance_rules"] if "ExpMaint" in m["folder"]), None)
+assert exp_maint is not None
+
+# 2. Importar
+import_payload = {
+    "rules": [
+        {"extension": "imptest", "destination": "Documents/ImportTest", "rename_pattern": "IMP_{OriginalName}.{ext}"}
+    ],
+    "maintenance_rules": [
+        {"folder": "Downloads/ImpMaint", "max_age_days": 10, "active": True}
+    ]
+}
+
+r_imp = client.post("/api/rules/import", json=import_payload)
+assert r_imp.status_code == 200
+res_imp = r_imp.get_json()
+assert res_imp.get("success") is True
+assert res_imp.get("imported_rules") == 1
+assert res_imp.get("imported_maintenance_rules") == 1
+
+# Verificar inserción en BD
+imp_rule_db = db.get_rule_for_extension("imptest")
+assert imp_rule_db is not None
+assert imp_rule_db["destination"] == "Documents/ImportTest"
+
+maint_rules_db = db.list_maintenance_rules()
+imp_maint_db = next((m for m in maint_rules_db if "ImpMaint" in m["folder"]), None)
+assert imp_maint_db is not None
+assert imp_maint_db["max_age_days"] == 10
+
+# Importar con payload inválido
+r_invalid = client.post("/api/rules/import", json={"rules": "no es una lista"})
+assert r_invalid.status_code == 400
+
+print("OK exportacion e importacion de reglas JSON")
+
+# ---- Pruebas de Notificaciones Nativas del Watcher ----
+from unittest.mock import patch
+from app.watcher import send_notification, _DownloadEventHandler
+
+with patch("subprocess.Popen") as mock_popen:
+    send_notification("Test Title", "Test Message")
+    time.sleep(0.1)
+    assert mock_popen.called
+
+with patch("app.watcher.send_notification") as mock_send_notif:
+    with patch.object(_DownloadEventHandler, "_wait_until_stable", return_value=True):
+        handler = _DownloadEventHandler()
+        test_file = downloads / "notif_test.txt"
+        test_file.write_text("contenido notificacion test")
+        
+        with patch("app.watcher.organize_file", return_value={"filename": "notif_test.txt", "category": "documentos"}):
+            handler._schedule(test_file)
+            time.sleep(0.2)
+            assert mock_send_notif.called
+            call_args = mock_send_notif.call_args[0]
+            assert call_args[0] == "Sortix"
+            assert "notif_test.txt" in call_args[1]
+
+        if test_file.exists():
+            test_file.unlink()
+
+print("OK notificaciones nativas del watcher")
+
+# ---- verificacion de build_desktop.py ----
+import ast
+
+build_script = BACKEND / "build_desktop.py"
+assert build_script.exists(), f"build_desktop.py no existe en {build_script}"
+script_content = build_script.read_text(encoding="utf-8")
+assert len(script_content) > 0, "build_desktop.py esta vacio"
+ast.parse(script_content, filename=str(build_script))
+print("OK verificacion de build_desktop.py")
+
+# ---- Smart Learning: /api/learn-correction ----
+r = client.post("/api/learn-correction", json={})
+assert r.status_code == 400, r.data
+
+r = client.post("/api/learn-correction", json={"filename": "song.mp3", "to_folder": "Music"})
+assert r.status_code == 200, r.data
+data = r.get_json()
+assert data["destination"] == "Music", data
+assert data["conditions"][0]["field"] == "extension", data
+assert data["conditions"][0]["value"] == ".mp3", data
+print("OK api learn-correction")
+
+# ---- Metadata extraction, conditions, and dynamic renaming ----
+from PIL import Image
+from mutagen.id3 import ID3, TPE1, TALB, TIT2, TDRC
+from app.organizer import check_conditions, format_rename_pattern
+import json
+
+img_test = downloads / "test_photo.jpg"
+img_obj = Image.new("RGB", (20, 20), color="blue")
+exif_dict = img_obj.getexif()
+exif_dict[271] = "Canon"
+exif_dict[272] = "EOS R5"
+exif_dict[306] = "2025:06:10 15:30:00"
+img_obj.save(img_test, exif=exif_dict)
+
+mp3_test = downloads / "test_song.mp3"
+mp3_test.write_bytes(b"TAG" + b"\x00" * 125)
+id3_obj = ID3()
+id3_obj.add(TPE1(encoding=3, text="Daft Punk"))
+id3_obj.add(TALB(encoding=3, text="Discovery"))
+id3_obj.add(TIT2(encoding=3, text="One More Time"))
+id3_obj.add(TDRC(encoding=3, text="2001"))
+id3_obj.save(mp3_test)
+
+# Test metadata condition evaluation
+assert check_conditions(img_test, "jpg", json.dumps([{"field": "camera", "operator": "contains", "value": "Canon"}]))
+assert not check_conditions(img_test, "jpg", json.dumps([{"field": "camera", "operator": "contains", "value": "Nikon"}]))
+assert check_conditions(img_test, "jpg", json.dumps([{"field": "exif_date", "operator": "starts_with", "value": "2025"}]))
+
+assert check_conditions(mp3_test, "mp3", json.dumps([{"field": "artist", "operator": "equals", "value": "Daft Punk"}]))
+assert check_conditions(mp3_test, "mp3", json.dumps([{"field": "album", "operator": "contains", "value": "Discovery"}]))
+assert check_conditions(mp3_test, "mp3", json.dumps([{"field": "title", "operator": "contains", "value": "One More"}]))
+assert check_conditions(mp3_test, "mp3", json.dumps([{"field": "year", "operator": "gt", "value": "2000"}]))
+print("OK evaluacion de condiciones con metadatos")
+
+# Test dynamic renaming placeholders
+rename_mp3 = format_rename_pattern("{ARTIST} - {ALBUM} - {TITLE} ({year}).{ext}", mp3_test, "Music", None)
+assert rename_mp3 == "Daft Punk - Discovery - One More Time (2001).mp3", rename_mp3
+
+rename_img = format_rename_pattern("{CAMERA}_{EXIF_DATE}.{ext}", img_test, "Pictures", None)
+assert "Canon EOS R5" in rename_img, rename_img
+assert "2025" in rename_img, rename_img
+print("OK marcadores dinamicos de renombrado con metadatos")
+
+if img_test.exists(): img_test.unlink()
+if mp3_test.exists(): mp3_test.unlink()
+
 print("\nTODAS LAS PRUEBAS PASARON")
+
+

@@ -99,6 +99,11 @@
                 clasificacion automatica: todo archivo con esa extension va directo
                 a la carpeta que indiques.
             </p>
+            <div class="rules-actions" style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button type="button" id="btn-export-rules" class="secondary-btn" data-i18n="export_rules_btn">Exportar reglas (JSON)</button>
+                <button type="button" id="btn-import-rules" class="secondary-btn" data-i18n="import_rules_btn">Importar reglas (JSON)</button>
+                <input type="file" id="import-rules-file" accept=".json" style="display: none;">
+            </div>
             <ul id="rules-list" class="settings-list"></ul>
             <form id="rule-form" class="settings-form">
                 <label for="rule-extension" data-i18n="rule_ext_label">Extension</label>
@@ -149,6 +154,11 @@
                 Escanea y elimina archivos duplicados para liberar espacio.
             </p>
             
+            <div style="margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px;">
+                <label for="duplicates-folder-input" data-i18n="duplicates_folder_label">Carpetas a analizar (opcional, separadas por comas):</label>
+                <input type="text" id="duplicates-folder-input" data-i18n-placeholder="duplicates_folder_placeholder" placeholder="ej. Documents, Downloads">
+            </div>
+
             <div class="duplicates-actions" style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                 <button type="button" id="btn-scan-duplicates" data-i18n="scan_duplicates_btn">Buscar duplicados</button>
                 <button type="button" id="btn-auto-select-duplicates" class="secondary-btn" data-i18n="auto_select_btn" disabled>Seleccionar todos menos uno</button>

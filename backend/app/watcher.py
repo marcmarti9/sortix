@@ -3,6 +3,7 @@ nuevo en cuanto termina de descargarse. Esto es lo que enciende/apaga el
 interruptor de 'Patrulla Activa' en la interfaz."""
 
 import queue
+import subprocess
 import sys
 import threading
 import time
@@ -12,12 +13,30 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 from app.organizer import organize_file
-from config.settings import IGNORED_SUFFIXES
+from config.settings import DOWNLOADS_DIR, IGNORED_SUFFIXES
 
 # Limites de estabilidad para evitar organizar descargas incompletas.
 STABLE_CHECKS_REQUIRED = 4
 STABLE_CHECK_INTERVAL = 0.75
 STABLE_WAIT_TIMEOUT_TICKS = 40  # ~30s de margen para descargas grandes
+
+
+def send_notification(title: str, message: str) -> None:
+    """Envía una notificación nativa del sistema operativo de forma no bloqueante."""
+    def _notify():
+        try:
+            if sys.platform.startswith("linux"):
+                subprocess.Popen(["notify-send", title, message])
+            elif sys.platform == "darwin":
+                script = f'display notification "{message}" with title "{title}"'
+                subprocess.Popen(["osascript", "-e", script])
+            elif sys.platform == "win32":
+                ps_script = f'[reflection.assembly]::loadwithpartialname("System.Windows.Forms"); [System.Windows.Forms.MessageBox]::Show("{message}", "{title}")'
+                subprocess.Popen(["powershell", "-Command", ps_script])
+        except Exception:
+            pass
+
+    threading.Thread(target=_notify, daemon=True).start()
 
 
 class _DownloadEventHandler(FileSystemEventHandler):
@@ -56,7 +75,12 @@ class _DownloadEventHandler(FileSystemEventHandler):
             path = self._queue.get()
             try:
                 if self._wait_until_stable(path):
-                    organize_file(path)
+                    result = organize_file(path)
+                    if result:
+                        filename = result.get("filename", path.name)
+                        category = result.get("category", "")
+                        msg = f"Archivo organizado: {filename} ({category})" if category else f"Archivo organizado: {filename}"
+                        send_notification("Sortix", msg)
             except Exception as e:
                 # Evita que el hilo muera de forma silenciosa e informa del fallo en stderr.
                 print(f"[Sortix Watcher Error] No se pudo organizar {path.name}: {e}", file=sys.stderr)
@@ -92,30 +116,104 @@ class _DownloadEventHandler(FileSystemEventHandler):
 
 
 class PatrolManager:
-    """Arranca/para la vigilancia de una carpeta. Pensado como singleton
+    """Arranca/para la vigilancia de múltiples carpetas en tiempo real. Pensado como singleton
     dentro del proceso del servidor."""
 
-    def __init__(self, directory: Path):
-        self._directory = directory
+    def __init__(self, directory: Path | None = None, directories: list[Path] | None = None):
+        if directories is not None:
+            self._base_directories = [Path(d) for d in directories]
+        elif directory is not None:
+            self._base_directories = [Path(directory)]
+        else:
+            self._base_directories = [DOWNLOADS_DIR]
+
         self._observer: Observer | None = None
+        self._watches: dict[Path, object] = {}
         self._lock = threading.Lock()
+        self._handler = _DownloadEventHandler()
+
+    def get_watched_directories(self) -> list[Path]:
+        with self._lock:
+            return list(self._watches.keys())
+
+    def _get_target_directories(self) -> list[Path]:
+        dirs = set()
+        for base in self._base_directories:
+            try:
+                base.mkdir(parents=True, exist_ok=True)
+                dirs.add(base.resolve())
+            except OSError:
+                pass
+
+        try:
+            from app import db, browser
+            for wf in db.list_watched_folders():
+                if wf.get("active", 1):
+                    folder_path_str = wf.get("folder_path", "")
+                    if folder_path_str:
+                        resolved = browser.resolve_safe_path(folder_path_str)
+                        if resolved:
+                            try:
+                                resolved.mkdir(parents=True, exist_ok=True)
+                                dirs.add(resolved.resolve())
+                            except OSError:
+                                pass
+        except Exception as e:
+            print(f"[Sortix Watcher Warning] Error obteniendo carpetas vigiladas de BD: {e}", file=sys.stderr)
+
+        return list(dirs)
+
+    def _update_watches_locked(self) -> None:
+        if self._observer is None or not self._observer.is_alive():
+            return
+
+        target_dirs = set(self._get_target_directories())
+        current_dirs = set(self._watches.keys())
+
+        # Cancelar vigilancia de carpetas eliminadas
+        for d in current_dirs - target_dirs:
+            watch = self._watches.pop(d)
+            try:
+                self._observer.unschedule(watch)
+            except Exception as e:
+                print(f"[Sortix Watcher Warning] No se pudo des-vigilar {d}: {e}", file=sys.stderr)
+
+        # Iniciar vigilancia de nuevas carpetas
+        for d in target_dirs - current_dirs:
+            try:
+                d.mkdir(parents=True, exist_ok=True)
+                watch = self._observer.schedule(self._handler, str(d), recursive=False)
+                self._watches[d] = watch
+            except Exception as e:
+                print(f"[Sortix Watcher Error] No se pudo vigilar {d}: {e}", file=sys.stderr)
 
     def start(self) -> None:
         with self._lock:
             if self.is_active():
+                self._update_watches_locked()
                 return
-            self._directory.mkdir(parents=True, exist_ok=True)
             observer = Observer()
-            observer.schedule(_DownloadEventHandler(), str(self._directory), recursive=False)
             observer.start()
             self._observer = observer
+            self._watches.clear()
+            self._update_watches_locked()
 
     def stop(self) -> None:
         with self._lock:
             if self._observer is not None:
-                self._observer.stop()
-                self._observer.join(timeout=5)
+                try:
+                    self._observer.stop()
+                    self._observer.join(timeout=5)
+                except Exception:
+                    pass
                 self._observer = None
+                self._watches.clear()
+
+    def update_watched_folders(self) -> None:
+        with self._lock:
+            if self.is_active():
+                self._update_watches_locked()
 
     def is_active(self) -> bool:
         return self._observer is not None and self._observer.is_alive()
+

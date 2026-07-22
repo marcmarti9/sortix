@@ -2,22 +2,33 @@
 que usa para controlar la Patrulla Activa, lanzar una organizacion manual,
 gestionar reglas/Temas y deshacer movimientos del historial."""
 
+import atexit
 import logging
 from pathlib import Path
 from urllib.parse import urlparse
 
 from flask import Flask, jsonify, request, send_from_directory
 
-from app import browser, db, security
-from app.organizer import organize_directory, resolve_destination_folder, undo_move
+from app import browser, db, llm, security
+from app.organizer import find_duplicates, organize_directory, resolve_destination_folder, undo_move
+from app.scheduler import scheduler
 from app.watcher import PatrolManager
 from config.settings import DOWNLOADS_DIR, IGNORED_SUFFIXES, PROJECT_DIR, HOST, PORT
 
 logger = logging.getLogger("sortix.server")
 
-FRONTEND_DIR = PROJECT_DIR / "frontend"
+import sys
+
+if getattr(sys, "frozen", False):
+    FRONTEND_DIR = Path(getattr(sys, "_MEIPASS", PROJECT_DIR)) / "frontend"
+else:
+    FRONTEND_DIR = PROJECT_DIR / "frontend"
 
 patrol = PatrolManager(DOWNLOADS_DIR)
+
+atexit.register(patrol.stop)
+atexit.register(scheduler.stop)
+
 
 
 def _get_scan_dirs():
@@ -254,6 +265,96 @@ def create_app() -> Flask:
         db.delete_rule(rule_id)
         return "", 204
 
+    @app.post("/api/learn-correction")
+    def learn_correction():
+        payload = request.get_json(silent=True) or {}
+        filename = payload.get("filename")
+        to_folder = payload.get("to_folder")
+        from_folder = payload.get("from_folder")
+
+        if not filename or not to_folder:
+            return jsonify({"error": "filename y to_folder son obligatorios"}), 400
+
+        rule = llm.suggest_rule_from_correction(filename, to_folder, from_folder)
+        return jsonify(rule), 200
+
+    @app.get("/api/rules/export")
+    def export_rules():
+        rules = db.list_rules()
+        m_rules = db.list_maintenance_rules()
+        for r in m_rules:
+            r["active"] = bool(r["active"])
+        return jsonify({
+            "rules": rules,
+            "maintenance_rules": m_rules
+        })
+
+    @app.post("/api/rules/import")
+    def import_rules():
+        import json
+        payload = request.get_json(silent=True)
+        if payload is None:
+            return jsonify({"error": "Payload JSON invalido"}), 400
+
+        if isinstance(payload, list):
+            rules_data = payload
+            maint_data = []
+        elif isinstance(payload, dict):
+            rules_data = payload.get("rules", [])
+            maint_data = payload.get("maintenance_rules", [])
+        else:
+            return jsonify({"error": "Payload JSON invalido"}), 400
+
+        if not isinstance(rules_data, list) or not isinstance(maint_data, list):
+            return jsonify({"error": "Formato de reglas o reglas de mantenimiento invalido"}), 400
+
+        imported_rules = 0
+        imported_maint = 0
+
+        for r in rules_data:
+            if not isinstance(r, dict):
+                continue
+            ext = security.valid_extension(r.get("extension") or "")
+            dest = security.clean_destination(r.get("destination") or "")
+            if ext is None or dest is None:
+                continue
+            rename_pattern = (r.get("rename_pattern") or "").strip() or None
+            conditions = r.get("conditions")
+            if isinstance(conditions, (list, dict)):
+                conditions = json.dumps(conditions)
+            elif isinstance(conditions, str):
+                conditions = conditions.strip() or None
+            else:
+                conditions = None
+            db.add_rule(ext, dest, rename_pattern, conditions)
+            imported_rules += 1
+
+        for m in maint_data:
+            if not isinstance(m, dict):
+                continue
+            folder = m.get("directory_path") or m.get("folder")
+            max_age = m.get("max_age_days")
+            if not folder or max_age is None:
+                continue
+            resolved = browser.resolve_safe_path(folder)
+            if resolved is None:
+                continue
+            try:
+                max_age_int = int(max_age)
+                if max_age_int <= 0:
+                    continue
+            except (ValueError, TypeError):
+                continue
+            active_val = 1 if m.get("active", True) else 0
+            db.add_maintenance_rule(browser._path_to_key(resolved), max_age_int, active_val)
+            imported_maint += 1
+
+        return jsonify({
+            "success": True,
+            "imported_rules": imported_rules,
+            "imported_maintenance_rules": imported_maint
+        }), 200
+
     @app.get("/api/log")
     def get_log():
         limit = request.args.get("limit", default=20, type=int)
@@ -351,22 +452,82 @@ def create_app() -> Flask:
         if resolved is None:
             return jsonify({"error": "ruta no permitida o insegura"}), 400
         result = db.add_watched_folder(str(resolved))
+        patrol.update_watched_folders()
         return jsonify(result), 201
 
     @app.delete("/api/watched-folders/<int:folder_id>")
     def remove_watched_folder(folder_id: int):
         db.delete_watched_folder(folder_id)
+        patrol.update_watched_folders()
         return "", 204
+
+    @app.get("/api/scheduler/config")
+    def get_scheduler_config():
+        return jsonify(scheduler.get_config())
+
+    @app.post("/api/scheduler/config")
+    @app.put("/api/scheduler/config")
+    def update_scheduler_config():
+        payload = request.get_json(silent=True) or {}
+        if "enabled" in payload:
+            scheduler.enabled = bool(payload["enabled"])
+        elif "active" in payload:
+            scheduler.enabled = bool(payload["active"])
+
+        if "interval_minutes" in payload:
+            val = payload["interval_minutes"]
+            try:
+                val_int = int(val)
+                if val_int <= 0:
+                    return jsonify({"error": "interval_minutes debe ser un entero positivo"}), 400
+                scheduler.interval_minutes = val_int
+            except (ValueError, TypeError):
+                return jsonify({"error": "interval_minutes debe ser un entero positivo"}), 400
+        elif "interval" in payload:
+            val = payload["interval"]
+            try:
+                val_int = int(val)
+                if val_int <= 0:
+                    return jsonify({"error": "interval debe ser un entero positivo"}), 400
+                scheduler.interval_minutes = val_int
+            except (ValueError, TypeError):
+                return jsonify({"error": "interval debe ser un entero positivo"}), 400
+
+        if scheduler.enabled and not scheduler.is_running():
+            scheduler.start()
+        elif not scheduler.enabled and scheduler.is_running():
+            scheduler.stop()
+
+        return jsonify(scheduler.get_config())
+
+    @app.post("/api/scheduler/run")
+    @app.post("/api/scheduler/run-now")
+    def run_scheduler_now():
+        res = scheduler.run_now()
+        return jsonify({"success": True, **res})
 
     @app.get("/api/statistics")
     def get_statistics():
         return jsonify(db.get_statistics())
 
-    @app.get("/api/duplicates")
+    @app.route("/api/duplicates", methods=["GET", "POST"])
     def get_duplicates():
-        scan_dirs = _get_scan_dirs()
-        all_files = _find_all_files(scan_dirs)
-        duplicates = _scan_duplicates(all_files)
+        scan_dirs = None
+        if request.method == "POST":
+            payload = request.get_json(silent=True) or {}
+            if "directories" in payload and payload["directories"] is not None:
+                raw_dirs = payload["directories"]
+                if not isinstance(raw_dirs, list):
+                    return jsonify({"error": "directories debe ser una lista"}), 400
+                scan_dirs = []
+                for d in raw_dirs:
+                    if not isinstance(d, str):
+                        return jsonify({"error": "Las rutas deben ser cadenas de texto"}), 400
+                    resolved = browser.resolve_safe_path(d)
+                    if resolved is None or not resolved.exists() or not resolved.is_dir():
+                        return jsonify({"error": f"Ruta invalida o no permitida: {d}"}), 400
+                    scan_dirs.append(resolved)
+        duplicates = find_duplicates(directories=scan_dirs)
         return jsonify(duplicates)
 
     @app.post("/api/duplicates/clean")
@@ -471,3 +632,6 @@ def create_app() -> Flask:
 def resume_patrol_if_needed() -> None:
     if db.get_setting("patrol_active", "0") == "1":
         patrol.start()
+    if db.get_setting("scheduler_enabled", "1") == "1":
+        scheduler.start()
+

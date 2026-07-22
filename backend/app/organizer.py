@@ -9,14 +9,16 @@ import logging
 import os
 import re
 import shutil
+import tarfile
 import time
+import zipfile
 from pathlib import Path
 
 from app import db
 from app.browser import resolve_safe_path
-from app.classifier import classify, normalize, _extract_content
+from app.classifier import classify, normalize, _extract_content, extract_metadata
 from app.security import safe_destination_dir
-from config.settings import HOME_DIR, IGNORED_SUFFIXES
+from config.settings import DOWNLOADS_DIR, HOME_DIR, IGNORED_SUFFIXES
 
 logger = logging.getLogger("sortix.organizer")
 
@@ -30,6 +32,162 @@ def calculate_sha256(path: Path) -> str:
     except OSError:
         pass
     return h.hexdigest()
+
+
+def calculate_fast_hash(path: Path) -> str:
+    h = hashlib.sha256()
+    CHUNK = 64 * 1024
+    try:
+        size = path.stat().st_size
+        with open(path, "rb") as f:
+            if size <= CHUNK * 2:
+                h.update(f.read())
+            else:
+                h.update(f.read(CHUNK))
+                f.seek(size - CHUNK)
+                h.update(f.read(CHUNK))
+        return h.hexdigest()
+    except OSError:
+        return ""
+
+
+def get_default_scan_dirs() -> list[Path]:
+    dirs = set()
+    dirs.add(DOWNLOADS_DIR.resolve())
+    try:
+        from config.settings import load_categories
+        categories = load_categories()["categories"]
+        for cat in categories.values():
+            folder_str = cat.get("folder")
+            if folder_str:
+                from app.security import safe_destination_dir
+                resolved = safe_destination_dir(folder_str)
+                if resolved and resolved.exists():
+                    dirs.add(resolved.resolve())
+    except Exception:
+        pass
+    try:
+        for topic in db.list_topics():
+            folder_str = topic.get("destination")
+            if folder_str:
+                from app.security import safe_destination_dir
+                resolved = safe_destination_dir(folder_str)
+                if resolved and resolved.exists():
+                    dirs.add(resolved.resolve())
+    except Exception:
+        pass
+    return list(dirs)
+
+
+def find_duplicates(directories: list[Path] | None = None) -> list[dict]:
+    """Busca archivos duplicados agrupando por tamaño, luego fast-hash, y finalmente hash completo."""
+    if directories is None:
+        directories = get_default_scan_dirs()
+
+    files = []
+    seen_paths = set()
+    for root_dir in directories:
+        if not root_dir.exists() or not root_dir.is_dir():
+            continue
+        for root, dirs, filenames in os.walk(root_dir):
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            for f in filenames:
+                if f.startswith('.'):
+                    continue
+                if Path(f).suffix.lower() in IGNORED_SUFFIXES:
+                    continue
+                file_path = Path(root) / f
+                try:
+                    resolved = file_path.resolve()
+                    if resolved not in seen_paths and resolved.is_file():
+                        seen_paths.add(resolved)
+                        files.append(resolved)
+                except OSError:
+                    continue
+
+    by_size = {}
+    for path in files:
+        try:
+            size = path.stat().st_size
+            if size == 0:
+                continue
+            by_size.setdefault(size, []).append(path)
+        except OSError:
+            continue
+
+    candidate_size_groups = [paths for size, paths in by_size.items() if len(paths) > 1]
+
+    by_fast_hash = {}
+    for paths in candidate_size_groups:
+        fast_groups = {}
+        for path in paths:
+            fh = calculate_fast_hash(path)
+            if fh:
+                fast_groups.setdefault(fh, []).append(path)
+        for fh, fh_paths in fast_groups.items():
+            if len(fh_paths) > 1:
+                by_fast_hash[fh] = fh_paths
+
+    duplicate_groups = {}
+    for fh, paths in by_fast_hash.items():
+        full_hash_groups = {}
+        for path in paths:
+            sha = calculate_sha256(path)
+            if sha:
+                full_hash_groups.setdefault(sha, []).append(path)
+        for sha, sha_paths in full_hash_groups.items():
+            if len(sha_paths) > 1:
+                size = sha_paths[0].stat().st_size
+                file_entries = []
+                for p in sha_paths:
+                    try:
+                        rel_path = str(p.relative_to(HOME_DIR.resolve())).replace("\\", "/")
+                    except ValueError:
+                        rel_path = str(p).replace("\\", "/")
+                    try:
+                        mtime_str = datetime.datetime.fromtimestamp(p.stat().st_mtime).isoformat(timespec="seconds")
+                    except OSError:
+                        mtime_str = ""
+                    file_entries.append({
+                        "path": rel_path,
+                        "name": p.name,
+                        "mtime": mtime_str
+                    })
+                file_entries.sort(key=lambda x: x["path"])
+                duplicate_groups[sha] = {
+                    "hash": sha,
+                    "size_bytes": size,
+                    "files": file_entries
+                }
+
+    result = list(duplicate_groups.values())
+    result.sort(key=lambda g: g["size_bytes"], reverse=True)
+    return result
+
+
+
+def unpack_archive(archive_path: Path, extract_dir: Path) -> None:
+    """Desempaqueta un archivo comprimido de forma segura validando contra Zip-Slip / Path Traversal."""
+    extract_dir_abs = os.path.abspath(extract_dir)
+    extract_dir.mkdir(parents=True, exist_ok=True)
+    name_lower = archive_path.name.lower()
+
+    if zipfile.is_zipfile(archive_path) or name_lower.endswith(".zip"):
+        with zipfile.ZipFile(archive_path, "r") as zf:
+            for member in zf.infolist():
+                member_path = os.path.abspath(os.path.join(extract_dir_abs, member.filename))
+                if not (member_path == extract_dir_abs or member_path.startswith(extract_dir_abs + os.sep)):
+                    raise ValueError(f"Zip-Slip detectado en archivo zip: {member.filename}")
+            zf.extractall(extract_dir_abs)
+    elif tarfile.is_tarfile(archive_path) or name_lower.endswith((".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tar.xz", ".gz")):
+        with tarfile.open(archive_path, "r:*") as tf:
+            for member in tf.getmembers():
+                member_path = os.path.abspath(os.path.join(extract_dir_abs, member.name))
+                if not (member_path == extract_dir_abs or member_path.startswith(extract_dir_abs + os.sep)):
+                    raise ValueError(f"Zip-Slip detectado en archivo tar: {member.name}")
+            tf.extractall(extract_dir_abs)
+    else:
+        raise ValueError(f"Formato de archivo comprimido no soportado: {archive_path}")
 
 
 def check_conditions(path: Path, ext: str, conditions_str: str | None) -> bool:
@@ -61,8 +219,16 @@ def check_conditions(path: Path, ext: str, conditions_str: str | None) -> bool:
                 actual = path.stat().st_size / 1024
             except OSError:
                 return False
+        elif field == "age_days":
+            try:
+                actual = (time.time() - path.stat().st_mtime) / 86400
+            except OSError:
+                return False
         elif field == "content":
             actual = _extract_content(path, ext)
+        elif field in ("artist", "album", "title", "year", "camera", "exif_date"):
+            meta = extract_metadata(path)
+            actual = meta.get(field)
 
         if actual is None:
             return False
@@ -73,26 +239,42 @@ def check_conditions(path: Path, ext: str, conditions_str: str | None) -> bool:
         elif op == "not_contains":
             if not isinstance(actual, str) or normalize(val) in normalize(actual):
                 return False
-        elif op == "equals":
-            if normalize(str(actual)) != normalize(str(val)):
-                return False
+        elif op in ("equals", "=="):
+            try:
+                if float(actual) != float(val):
+                    return False
+            except (ValueError, TypeError):
+                if normalize(str(actual)) != normalize(str(val)):
+                    return False
         elif op == "starts_with":
             if not isinstance(actual, str) or not normalize(actual).startswith(normalize(val)):
                 return False
         elif op == "ends_with":
             if not isinstance(actual, str) or not normalize(actual).endswith(normalize(val)):
                 return False
-        elif op == "gt":
+        elif op in ("gt", ">"):
             try:
                 if float(actual) <= float(val):
                     return False
-            except ValueError:
+            except (ValueError, TypeError):
                 return False
-        elif op == "lt":
+        elif op in ("lt", "<"):
             try:
                 if float(actual) >= float(val):
                     return False
-            except ValueError:
+            except (ValueError, TypeError):
+                return False
+        elif op in ("gte", ">="):
+            try:
+                if float(actual) < float(val):
+                    return False
+            except (ValueError, TypeError):
+                return False
+        elif op in ("lte", "<="):
+            try:
+                if float(actual) > float(val):
+                    return False
+            except (ValueError, TypeError):
                 return False
     return True
 
@@ -103,6 +285,8 @@ def format_rename_pattern(pattern: str, path: Path, category: str, topic_name: s
         mtime = datetime.datetime.fromtimestamp(path.stat().st_mtime)
     except OSError:
         mtime = now
+
+    meta = extract_metadata(path)
 
     placeholders = {
         "{YYYY}": now.strftime("%Y"),
@@ -115,6 +299,13 @@ def format_rename_pattern(pattern: str, path: Path, category: str, topic_name: s
         "{Topic}": topic_name or "",
         "{Category}": category,
         "{ext}": path.suffix.lower().lstrip("."),
+        "{ARTIST}": meta.get("artist") or "",
+        "{ALBUM}": meta.get("album") or "",
+        "{TITLE}": meta.get("title") or "",
+        "{CAMERA}": meta.get("camera") or "",
+        "{EXIF_DATE}": meta.get("exif_date") or "",
+        "{YEAR}": meta.get("year") or "",
+        "{year}": meta.get("year") or "",
     }
 
     new_name = pattern
@@ -168,6 +359,38 @@ def organize_file(path: Path) -> dict | None:
     o ya esta en su carpeta de destino)."""
     if not path.exists() or not path.is_file():
         return None
+
+    name_lower = path.name.lower()
+    is_archive = name_lower.endswith((".zip", ".tar", ".tar.gz", ".tgz", ".gz"))
+    unpack_enabled = str(db.get_setting("unpack_archives", "true")).lower() in ("true", "1")
+
+    if is_archive and unpack_enabled:
+        if name_lower.endswith(".tar.gz"):
+            folder_name = path.name[:-7]
+        elif name_lower.endswith(".tgz"):
+            folder_name = path.name[:-4]
+        else:
+            folder_name = path.stem
+
+        extract_dir = path.parent / folder_name
+        try:
+            unpack_archive(path, extract_dir)
+            source_str = str(path)
+            path.unlink()
+            db.log_move(
+                filename=path.name,
+                source=source_str,
+                destination=str(extract_dir),
+                category="desempaquetado",
+            )
+            return {
+                "filename": path.name,
+                "source": source_str,
+                "destination": str(extract_dir),
+                "category": "desempaquetado",
+            }
+        except Exception as exc:
+            logger.warning("no se pudo desempaquetar %s, continuando clasificacion normal: %s", path.name, exc)
 
     category, relative_folder, rename_pattern = resolve_destination_folder(path)
 

@@ -45,7 +45,18 @@ const TRANSLATIONS = {
         cond_field_stem: "Nombre (sin extensión)",
         cond_field_ext: "Extensión",
         cond_field_size: "Tamaño (KB)",
+        cond_field_age_days: "Antigüedad (días)",
         cond_field_content: "Contenido de texto",
+        cond_field_artist: "Artista",
+        cond_field_album: "Álbum",
+        cond_field_title: "Título",
+        cond_field_year: "Año",
+        cond_field_camera: "Cámara",
+        cond_field_exif_date: "Fecha EXIF",
+        learn_correction_btn: "Aprender de la corrección",
+        learn_correction_title: "Aprender de la corrección / Crear regla",
+        status_rule_suggested: "Regla sugerida cargada en la pestaña de reglas.",
+        status_learn_error: "No se pudo generar la regla sugerida.",
         cond_op_contains: "Contiene",
         cond_op_not_contains: "No contiene",
         cond_op_equals: "Es igual a",
@@ -96,6 +107,15 @@ const TRANSLATIONS = {
         status_undone_done: '"{filename}" devuelto a su carpeta de origen.',
         status_undo_error: "No se pudo deshacer el movimiento.",
         history_undone_label: "deshecho",
+        
+        export_rules_btn: "Exportar reglas (JSON)",
+        import_rules_btn: "Importar reglas (JSON)",
+        duplicates_folder_label: "Carpetas a analizar (opcional, separadas por comas):",
+        duplicates_folder_placeholder: "ej. Documents, Downloads",
+        status_rules_exported: "Reglas exportadas correctamente.",
+        status_rules_imported: "Reglas importadas correctamente.",
+        status_export_error: "Error al exportar las reglas.",
+        status_import_error: "Error al importar las reglas.",
         
         tab_duplicates: "Deduplicar",
         duplicates_hint: "Escanea y elimina archivos duplicados para liberar espacio.",
@@ -199,7 +219,18 @@ const TRANSLATIONS = {
         cond_field_stem: "File name (no ext)",
         cond_field_ext: "Extension",
         cond_field_size: "Size (KB)",
+        cond_field_age_days: "Age (days)",
         cond_field_content: "Text content",
+        cond_field_artist: "Artist",
+        cond_field_album: "Album",
+        cond_field_title: "Title",
+        cond_field_year: "Year",
+        cond_field_camera: "Camera",
+        cond_field_exif_date: "EXIF Date",
+        learn_correction_btn: "Learn from correction",
+        learn_correction_title: "Learn from correction / Create rule",
+        status_rule_suggested: "Suggested rule loaded into rules tab.",
+        status_learn_error: "Could not generate suggested rule.",
         cond_op_contains: "Contains",
         cond_op_not_contains: "Does not contain",
         cond_op_equals: "Equals",
@@ -250,6 +281,15 @@ const TRANSLATIONS = {
         status_undone_done: '"{filename}" returned to its source folder.',
         status_undo_error: "Could not undo the movement.",
         history_undone_label: "undone",
+        
+        export_rules_btn: "Export rules (JSON)",
+        import_rules_btn: "Import rules (JSON)",
+        duplicates_folder_label: "Folders to analyze (optional, comma-separated):",
+        duplicates_folder_placeholder: "e.g. Documents, Downloads",
+        status_rules_exported: "Rules exported successfully.",
+        status_rules_imported: "Rules imported successfully.",
+        status_export_error: "Error exporting rules.",
+        status_import_error: "Error importing rules.",
         
         tab_duplicates: "Deduplicate",
         duplicates_hint: "Scan and delete duplicate files to free up space.",
@@ -405,6 +445,7 @@ const ICONS = {
     simulate: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
     eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
     chart: '<path d="M18 20V10M12 20V4M6 20v-6"/>',
+    brain: '<path d="M12 2a5 5 0 0 0-5 5c0 .6.1 1.2.3 1.8A5 5 0 0 0 3 13a5 5 0 0 0 4.5 4.96A5 5 0 0 0 12 22a5 5 0 0 0 4.5-4.04A5 5 0 0 0 21 13a5 5 0 0 0-4.3-4.2A5 5 0 0 0 12 2z"/>',
 };
 
 function svgIcon(name, extraClass) {
@@ -798,7 +839,14 @@ function createConditionRow(data = {}) {
             <option value="stem">${t("cond_field_stem")}</option>
             <option value="extension">${t("cond_field_ext")}</option>
             <option value="size_kb">${t("cond_field_size")}</option>
+            <option value="age_days">${t("cond_field_age_days")}</option>
             <option value="content">${t("cond_field_content")}</option>
+            <option value="artist">${t("cond_field_artist")}</option>
+            <option value="album">${t("cond_field_album")}</option>
+            <option value="title">${t("cond_field_title")}</option>
+            <option value="year">${t("cond_field_year")}</option>
+            <option value="camera">${t("cond_field_camera")}</option>
+            <option value="exif_date">${t("cond_field_exif_date")}</option>
         </select>
         <select class="cond-operator lang-select" style="flex: 1; min-width: 80px; padding: 6px; background-color: var(--bg-input); border: 1px solid var(--border-input); color: var(--color-input-text); border-radius: 6px; font-size: 0.85rem;">
             <option value="contains">${t("cond_op_contains")}</option>
@@ -818,9 +866,22 @@ function createConditionRow(data = {}) {
     const valInput = row.querySelector(".cond-value");
     const removeBtn = row.querySelector(".btn-remove-cond");
 
+    function updateInputType() {
+        if (fieldSel.value === "age_days" || fieldSel.value === "size_kb") {
+            valInput.type = "number";
+            valInput.step = "any";
+        } else {
+            valInput.type = "text";
+        }
+    }
+
+    fieldSel.addEventListener("change", updateInputType);
+
     if (data.field) fieldSel.value = data.field;
     if (data.operator) opSel.value = data.operator;
     if (data.value !== undefined) valInput.value = data.value;
+
+    updateInputType();
 
     removeBtn.addEventListener("click", () => {
         row.remove();
@@ -961,6 +1022,54 @@ async function refreshHistory() {
             <span class="keywords">${escapeHtml(formatDate(move.moved_at))}${undoneText}</span>
         </div>`;
         if (!move.undone_at) {
+            const actionContainer = document.createElement("div");
+            actionContainer.style.display = "flex";
+            actionContainer.style.gap = "6px";
+
+            const learnBtn = document.createElement("button");
+            learnBtn.className = "icon-btn";
+            learnBtn.innerHTML = svgIcon("brain");
+            learnBtn.title = t("learn_correction_title");
+            learnBtn.addEventListener("click", async () => {
+                learnBtn.disabled = true;
+                try {
+                    const ruleData = await fetchJSON("/api/learn-correction", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            filename: move.filename,
+                            to_folder: move.destination,
+                            from_folder: move.source
+                        })
+                    });
+                    openSettings("rules");
+                    if (ruleData) {
+                        const extInput = document.getElementById("rule-extension");
+                        const destInput = document.getElementById("rule-destination");
+                        if (extInput && ruleData.extension) {
+                            extInput.value = ruleData.extension;
+                        } else if (extInput && ruleData.conditions) {
+                            const extCond = ruleData.conditions.find(c => c.field === "extension");
+                            if (extCond) extInput.value = extCond.value.replace(/^\./, "");
+                        }
+                        if (destInput && ruleData.destination) {
+                            destInput.value = ruleData.destination;
+                        }
+                        const conditionsContainer = document.getElementById("rule-conditions-container");
+                        if (conditionsContainer && Array.isArray(ruleData.conditions)) {
+                            conditionsContainer.innerHTML = "";
+                            ruleData.conditions.forEach(cond => createConditionRow(cond));
+                        }
+                    }
+                    showStatus(t("status_rule_suggested"));
+                } catch (err) {
+                    showStatus(err.message || t("status_learn_error"), true);
+                } finally {
+                    learnBtn.disabled = false;
+                }
+            });
+            actionContainer.appendChild(learnBtn);
+
             const undoBtn = document.createElement("button");
             undoBtn.className = "icon-btn";
             undoBtn.innerHTML = svgIcon("undo");
@@ -977,7 +1086,9 @@ async function refreshHistory() {
                     showStatus(err.message || t("status_undo_error"), true);
                 }
             });
-            li.appendChild(undoBtn);
+            actionContainer.appendChild(undoBtn);
+
+            li.appendChild(actionContainer);
         }
         historyListEl.appendChild(li);
     }
@@ -1256,7 +1367,18 @@ async function scanDuplicates() {
     if (btnClean) btnClean.disabled = true;
 
     try {
-        duplicateGroups = await fetchJSON("/api/duplicates");
+        const folderInput = document.getElementById("duplicates-folder-input");
+        const folderVal = (folderInput ? folderInput.value : "").strip ? folderInput.value.strip() : (folderInput ? folderInput.value.trim() : "");
+        if (folderVal) {
+            const dirs = folderVal.split(",").map(s => s.trim()).filter(Boolean);
+            duplicateGroups = await fetchJSON("/api/duplicates", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ directories: dirs }),
+            });
+        } else {
+            duplicateGroups = await fetchJSON("/api/duplicates");
+        }
         listEl.innerHTML = "";
 
         if (duplicateGroups.length === 0) {
@@ -1412,6 +1534,60 @@ for (const tabBtn of document.querySelectorAll(".tab-btn")) {
         if (tabBtn.dataset.tab === "maintenance") refreshMaintenance();
         if (tabBtn.dataset.tab === "watched") refreshWatchedFolders();
         if (tabBtn.dataset.tab === "stats") refreshStatistics();
+}
+
+async function exportRules() {
+    try {
+        const data = await fetchJSON("/api/rules/export");
+        const jsonStr = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "sortix_rules.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showStatus(t("status_rules_exported"));
+    } catch (err) {
+        showStatus(t("status_export_error"), true);
+    }
+}
+
+async function importRules(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const parsed = JSON.parse(e.target.result);
+            await fetchJSON("/api/rules/import", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(parsed),
+            });
+            showStatus(t("status_rules_imported"));
+            refreshRules();
+            refreshMaintenance();
+        } catch (err) {
+            showStatus(t("status_import_error"), true);
+        }
+    };
+    reader.readAsText(file);
+}
+
+const btnExportRules = document.getElementById("btn-export-rules");
+if (btnExportRules) btnExportRules.addEventListener("click", exportRules);
+
+const btnImportRules = document.getElementById("btn-import-rules");
+const fileInputImport = document.getElementById("import-rules-file");
+if (btnImportRules && fileInputImport) {
+    btnImportRules.addEventListener("click", () => fileInputImport.click());
+    fileInputImport.addEventListener("change", (e) => {
+        if (e.target.files && e.target.files[0]) {
+            importRules(e.target.files[0]);
+            fileInputImport.value = "";
+        }
     });
 }
 

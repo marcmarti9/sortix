@@ -4,4 +4,8 @@ backend/.venv/
 database/sortix.db
 backend/.env
 .claude/
+backend/build/
+backend/dist/
+*.spec
+
 

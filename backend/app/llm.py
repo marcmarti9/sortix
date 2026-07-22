@@ -81,3 +81,41 @@ def suggest_subfolder(filename: str, content_excerpt: str, category_folder: str)
         logger.info("respuesta del LLM descartada por no ser un nombre valido")
         return None
     return f"{category_folder}/{name}"
+
+
+def suggest_rule_from_correction(filename: str, to_folder: str, from_folder: str | None = None) -> dict:
+    """Genera una regla sugerida basada en un movimiento corregido."""
+    from pathlib import Path
+    ext = Path(filename).suffix.lower()
+    ext_clean = ext.lstrip(".") if ext else "*"
+    ext_dot = f".{ext_clean}" if ext_clean != "*" else "*"
+
+    dest = (to_folder or "").replace("\\", "/").rstrip("/")
+    if dest.endswith("/" + filename) or dest == filename:
+        parent_str = str(Path(dest).parent).replace("\\", "/")
+        dest = parent_str if parent_str != "." else dest
+
+    try:
+        from config.settings import HOME_DIR
+        dest_p = Path(dest)
+        if dest_p.is_absolute():
+            dest = str(dest_p.resolve().relative_to(HOME_DIR.resolve())).replace("\\", "/")
+    except Exception:
+        pass
+
+    rule_name = f"Move {ext_dot} to {dest}" if ext_clean != "*" else f"Move {filename} to {dest}"
+
+    rule = {
+        "name": rule_name,
+        "extension": ext_clean,
+        "destination": dest,
+        "action": "move",
+        "conditions": [
+            {
+                "field": "extension" if ext_clean != "*" else "name",
+                "operator": "equals",
+                "value": ext_dot if ext_clean != "*" else filename
+            }
+        ]
+    }
+    return rule

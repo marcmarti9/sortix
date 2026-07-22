@@ -208,3 +208,147 @@ def classify(path: Path) -> dict:
             return {"category": f"IA local: {suggested.rsplit('/', 1)[-1]}", "topic": None, "folder": suggested}
 
     return {"category": category, "topic": None, "folder": category_folder}
+
+
+def extract_metadata(path: Path) -> dict[str, str | None]:
+    """Extrae metadatos EXIF (imágenes) e ID3/audio (música) de forma segura.
+    Retorna claves: artist, album, title, year, exif_date, camera.
+    """
+    res = {
+        "artist": None,
+        "album": None,
+        "title": None,
+        "year": None,
+        "exif_date": None,
+        "camera": None,
+    }
+    if not path or not path.exists() or not path.is_file():
+        return res
+
+    ext = path.suffix.lower().lstrip(".")
+
+    # EXIF para .jpg, .jpeg, .png, .webp, .tiff
+    if ext in ("jpg", "jpeg", "png", "webp", "tiff"):
+        try:
+            from PIL import Image, ExifTags
+            with Image.open(path) as img:
+                exif_data = img.getexif()
+                make = None
+                model = None
+                date_val = None
+
+                def process_exif_dict(exif_dict):
+                    nonlocal make, model, date_val
+                    for tag_id, value in exif_dict.items():
+                        tag_name = ExifTags.TAGS.get(tag_id, tag_id)
+                        if tag_name == "Make" and value and not make:
+                            make = str(value).strip("\x00 ").strip()
+                        elif tag_name == "Model" and value and not model:
+                            model = str(value).strip("\x00 ").strip()
+                        elif tag_name in ("DateTimeOriginal", "DateTime", "DateTimeDigitized") and value and not date_val:
+                            date_val = str(value).strip("\x00 ").strip()
+
+                if exif_data:
+                    process_exif_dict(exif_data)
+
+                if hasattr(img, "_getexif") and callable(img._getexif):
+                    try:
+                        raw_exif = img._getexif()
+                        if raw_exif:
+                            process_exif_dict(raw_exif)
+                    except Exception:
+                        pass
+
+                if make or model:
+                    if make and model:
+                        if model.lower().startswith(make.lower()):
+                            res["camera"] = model
+                        else:
+                            res["camera"] = f"{make} {model}"
+                    else:
+                        res["camera"] = make or model
+
+                if date_val:
+                    res["exif_date"] = date_val
+        except Exception:
+            pass
+
+    # ID3 / Audio para .mp3, .flac, .m4a, .wav
+    elif ext in ("mp3", "flac", "m4a", "wav"):
+        try:
+            import mutagen
+            audio = None
+            try:
+                audio = mutagen.File(path, easy=True)
+            except Exception:
+                pass
+
+            if audio is None:
+                try:
+                    audio = mutagen.File(path)
+                except Exception:
+                    pass
+
+            def get_val_from_obj(obj, keys):
+                for k in keys:
+                    if hasattr(obj, "get") and callable(obj.get):
+                        val = obj.get(k)
+                        if val is not None:
+                            if isinstance(val, (list, tuple)) and len(val) > 0:
+                                s = str(val[0]).strip("\x00 ").strip()
+                                if s:
+                                    return s
+                            else:
+                                s = str(val).strip("\x00 ").strip()
+                                if s:
+                                    return s
+                    if hasattr(obj, "__getitem__"):
+                        try:
+                            val = obj[k]
+                            if isinstance(val, (list, tuple)) and len(val) > 0:
+                                s = str(val[0]).strip("\x00 ").strip()
+                                if s:
+                                    return s
+                            elif val is not None:
+                                s = str(val).strip("\x00 ").strip()
+                                if s:
+                                    return s
+                        except Exception:
+                            pass
+                return None
+
+            if audio is not None:
+                res["artist"] = get_val_from_obj(audio, ["artist", "TPE1", "\xa9ART", "ARTIST", "Artist"])
+                res["album"] = get_val_from_obj(audio, ["album", "TALB", "\xa9alb", "ALBUM", "Album"])
+                res["title"] = get_val_from_obj(audio, ["title", "TIT2", "\xa9nam", "TITLE", "Title"])
+                year_raw = get_val_from_obj(audio, ["date", "year", "TYER", "TDRC", "\xa9day", "DATE", "Date"])
+                if year_raw:
+                    m = re.search(r"\b(19\d\d|20\d\d)\b", year_raw)
+                    res["year"] = m.group(1) if m else year_raw
+
+            if ext in ("mp3", "wav") and (not res["artist"] or not res["title"]):
+                try:
+                    from mutagen.id3 import ID3
+                    id3 = ID3(path)
+                    if not res["artist"] and "TPE1" in id3:
+                        res["artist"] = str(id3["TPE1"]).strip("\x00 ").strip()
+                    if not res["album"] and "TALB" in id3:
+                        res["album"] = str(id3["TALB"]).strip("\x00 ").strip()
+                    if not res["title"] and "TIT2" in id3:
+                        res["title"] = str(id3["TIT2"]).strip("\x00 ").strip()
+                    if not res["year"]:
+                        y = str(id3["TDRC"]).strip("\x00 ").strip() if "TDRC" in id3 else (str(id3["TYER"]).strip("\x00 ").strip() if "TYER" in id3 else None)
+                        if y:
+                            m = re.search(r"\b(19\d\d|20\d\d)\b", y)
+                            res["year"] = m.group(1) if m else y
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    return res
+
+
+def check_conditions(path: Path, ext: str, conditions_str: str | None) -> bool:
+    from app.organizer import check_conditions as _check_conditions
+    return _check_conditions(path, ext, conditions_str)

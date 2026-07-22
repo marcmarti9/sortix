@@ -3,11 +3,18 @@ y el fichero de categorias. Sin dependencias externas para que corra en
 cualquier maquina modesta."""
 
 import json
+import sys
 from pathlib import Path
 
-BACKEND_DIR = Path(__file__).resolve().parent.parent
-PROJECT_DIR = BACKEND_DIR.parent
-CONFIG_DIR = Path(__file__).resolve().parent
+if getattr(sys, "frozen", False):
+    BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+    PROJECT_DIR = BASE_DIR
+    BACKEND_DIR = BASE_DIR / "backend" if (BASE_DIR / "backend").exists() else BASE_DIR
+    CONFIG_DIR = BASE_DIR / "config" if (BASE_DIR / "config").exists() else BASE_DIR
+else:
+    BACKEND_DIR = Path(__file__).resolve().parent.parent
+    PROJECT_DIR = BACKEND_DIR.parent
+    CONFIG_DIR = Path(__file__).resolve().parent
 
 CATEGORIES_FILE = CONFIG_DIR / "categories.json"
 

@@ -6,51 +6,95 @@
 </p>
 
 <h1 align="center">Sortix</h1>
-<p align="center"><strong>An intelligent, real-time downloads organizer and local file explorer.</strong></p>
-<p align="center">Sortix runs silently in the background, monitors your Downloads directory, and automatically organizes incoming files into target folders based on file types, extension rules, or content-matching keywords.</p>
+<p align="center"><strong>An intelligent, privacy-first, real-time file organizer for your desktop.</strong></p>
+<p align="center">Sortix runs quietly in the background, monitoring your Downloads and custom folders. It automatically classifies and files incoming documents, media, and archives using visual Scratch-like rules, content OCR, EXIF/ID3 metadata, or an optional 100% local LLM.</p>
 
 ---
 
-## Why Sortix?
+## 💡 Why Sortix?
 
-Your Downloads folder is where files go to die. Sortix gives every file a proper home the moment it finishes downloading — and because it routinely handles sensitive documents (bank statements, contracts, invoices, medical PDFs), it is built privacy-first from the ground up:
+Let’s be honest: your Downloads folder is probably an endless dumping ground of PDFs, invoices, screenshots, zip files, and music downloads. Manually moving them takes time, and cloud-based file organizers compromise your privacy.
 
-* **100% Local:** No cloud, no telemetry, no network calls. Content-based classification scans PDF/DOCX/TXT files on your machine.
-* **Security Headers & Controls:** API responses contain sensitive names and paths, so they are protected with strictly configured headers (`Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`).
-* **Path Traversal Protection:** All rules and custom topics are sanitized to ensure destination directories remain strictly within your personal home directory (~).
-* **Anti-Loop Guards:** Defensive checks ensure the destination folder does not loop back into the watched downloads directory, avoiding endless watchdogs events.
+Sortix handles sensitive personal files (tax returns, bank statements, contracts, photos) right on your machine. It is designed **privacy-first from day one**:
 
----
-
-## Features
-
-* **Active Patrol (Real-time monitoring):** Instantly detects new files landing in your Downloads directory and schedules organization once download completes (safely handles temporary files like `.crdownload` or `.part` using thread-safe size stability checks).
-* **Topic Classification (NLP Content Scanning):** Scans file names and document contents (supports PDF, DOCX, and TXT) for user-defined keywords (e.g., "Bank", "Gym", "University") to classify and file them into targeted directories.
-* **Direct Extension Rules:** Simple rules mapping specific extensions directly to custom destinations (e.g., `.log` -> `Documents/Logs`).
-* **Desktop App Window:** Run Sortix inside its own native window (`backend/desktop.py`) using `pywebview` or your browser's `--app` mode (no browser address bar) to make it feel like a native application.
-* **Local LLM integration (Optional):** Supports offloading file naming and category sorting to a 100% local Ollama LLM (`llama3.2` or others) for documents that don't fit simple keyword rules.
-* **Bilingual File Explorer Interface:** A clean, responsive Web UI featuring a dynamic directory tree, navigation breadcrumbs, and detailed execution logs in both English and Spanish.
-* **Rich Theme System:** Toggle between fluid dark and light themes featuring hardware-accelerated circular transitions (utilizing the modern View Transitions API).
-* **Cross-Platform Background Services:** Native setup scripts to easily install Sortix as a system service on Linux (systemd), macOS (LaunchAgents), or Windows (Task Scheduler).
+* **100% Local Execution:** Zero cloud dependencies, zero telemetry, and zero external API calls. Your documents never leave your localhost.
+* **Smart Content Classification:** Deep scans text in PDF, DOCX, and TXT files, and performs local OCR on images using Tesseract.
+* **Strict Security Controls:** Safe path resolution strictly confined to your home directory (`~`), built-in anti-loop guards, anti-Zip-Slip protections for archives, and local API token protection.
 
 ---
 
-## Background Service Installation (Recommended)
+## ✨ Features at a Glance
 
-To keep Sortix watching your Downloads directory continuously without keeping a terminal open, install it as a background service:
+### 🚀 Real-Time Automation & Multi-Folder Patrol
+* **Multi-Folder Real-Time Monitoring:** Monitors your Downloads directory and any active custom folders simultaneously in real-time. Safely waits for active downloads (`.crdownload`, `.part`) to complete before filing.
+* **Background Task Scheduler:** Automatically runs periodic folder sweeps and scheduled auto-trash cleanups in the background without blocking the UI.
+* **Native Desktop Notifications:** Sends non-intrusive system notifications whenever a file is filed or organized.
+
+### 🧠 Smart Classification & Learning
+* **Visual Scratch-Style Rule Builder:** Combine filename, extension, file size, age (`age_days`), and content conditions with AND logic.
+* **Smart Learning from Corrections:** Corrected a file placement manually? Sortix analyzes the correction (via heuristic patterns or your optional local Ollama LLM) and suggests a new rule with a single click.
+* **Archive Handling (.zip / .tar):** Safely unpacks compressed archives in temporary sandboxes with Zip-Slip protection to analyze and organize internal contents.
+* **EXIF & ID3 Tag Metadata:** Filter and rename files using photo EXIF data (camera model, capture date) and audio ID3 tags (artist, album, song title, year).
+* **Dynamic Placeholders:** Custom file renaming templates using tags like `{YYYY}`, `{Topic}`, `{ARTIST}`, `{ALBUM}`, `{EXIF_DATE}`, and `{OriginalName}`.
+
+### 🛠️ Utilities & Desktop Experience
+* **Fast 2-Step Deduplication:** Quickly detects duplicate files across any selected directory using a lightweight 2-pass hashing approach (64KB fast-hash + full SHA256 verification).
+* **Export & Import Rules:** Export your custom classification and maintenance rules to JSON files to share or backup.
+* **Dry-Run Simulation:** Test how your rules will handle existing files before committing any actual moves.
+* **1-Level Undo:** Accidental move? Undo filing actions directly from your History log.
+* **Standalone Desktop App & 1-Click Packaging:** Run as a native desktop window via `pywebview` or package into a standalone binary using the built-in PyInstaller builder script.
+
+---
+
+## 🛠️ Getting Started
+
+### Prerequisites
+* **Python 3.10+**
+* (Optional) **Tesseract OCR** for image text scanning.
+* (Optional) **Ollama** (`SORTIX_LLM=1`) for local AI fallback suggestions.
+
+### Quick Run
+```bash
+git clone https://github.com/marcmarti9/sortix.git
+cd sortix/backend
+
+# Create environment and install dependencies
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+# Run server
+python main.py
+```
+Open your browser at `http://127.0.0.1:5000` to access the dashboard.
+
+To launch in desktop app window mode:
+```bash
+python desktop.py
+```
+
+---
+
+## 📦 Building a 1-Click Desktop Executable
+
+Want a standalone executable binary without needing a Python setup?
+
+```bash
+cd backend
+python build_desktop.py
+```
+The compiled binary will be placed inside `backend/dist/`.
+
+---
+
+## ⚙️ Background Service Setup
+
+Keep Sortix running silently whenever your system starts:
 
 ### Linux (systemd user service)
 ```bash
 cd backend/deploy
 ./install_linux.sh
-```
-*Note: The service starts automatically with your user session. Run `sudo loginctl enable-linger $USER` to keep it running when your session is closed.*
-
-### Windows (Scheduled Task)
-Open PowerShell as Administrator and run:
-```powershell
-cd backend\deploy
-powershell -ExecutionPolicy Bypass -File install_windows.ps1
 ```
 
 ### macOS (LaunchAgent)
@@ -59,57 +103,58 @@ cd backend/deploy
 ./install_macos.sh
 ```
 
-*To remove the background service at any time, run the corresponding `./uninstall_...` script from the `deploy/` folder.*
+### Windows (Scheduled Task)
+```powershell
+cd backend\deploy
+powershell -ExecutionPolicy Bypass -File install_windows.ps1
+```
+
+*(To uninstall services, run the corresponding `./uninstall_...` script in `backend/deploy/`.)*
 
 ---
 
-## Configuration & Customization
+## 🧪 Testing
 
-* **Custom Categories:** Base categories, folder paths, and extension maps are customized by editing [backend/config/categories.json](backend/config/categories.json).
-* **Custom Topics:** Topics (e.g. "Work", "Finances") are managed directly in the Web UI under Settings -> Topics.
-* **Portability:** All folder paths resolved by Sortix are relative to the user's personal home directory (`~` / `C:\Users\username`), ensuring seamless compatibility and safety across different systems.
-
-### Advanced Settings (.env)
-
-Customize your service by creating a `backend/.env` file:
-* `SORTIX_HOST` / `SORTIX_PORT`: Customize Flask host and port.
-* `SORTIX_TOKEN`: Set a shared API token (verified via `X-Sortix-Token` header), which is mandatory if you bind the host beyond `127.0.0.1` (e.g. `0.0.0.0` for a LAN dashboard).
-* `SORTIX_LLM=1`: Enables the optional local LLM integration via Ollama.
-* `SORTIX_LLM_URL` / `SORTIX_LLM_MODEL`: Customize LLM connection (defaults to `http://127.0.0.1:11434` and `llama3.2`).
-
----
-
-## Testing
-
-Sortix includes a self-contained integration test suite that runs against a temporary database and workspace without touching your real files:
+Sortix features a comprehensive, isolated integration test suite:
 
 ```bash
 cd backend
-./.venv/bin/python tests/test_all.py
+.venv/bin/python tests/test_all.py
 ```
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
-backend/    Python server (Flask + watchdog): watcher, classifier, API
-frontend/   Web UI (file-explorer style) for Topics, rules, history and translations
-database/   SQLite schema (Topics, rules, move history, settings)
+backend/
+├── app/
+│   ├── classifier.py      # Classification engine (Scratch rules, OCR, EXIF/ID3 tags)
+│   ├── organizer.py       # File moves, renaming templates, zip unpacking, fast-hash dedup
+│   ├── watcher.py         # Real-time multi-folder Watchdog patrol & desktop notifications
+│   ├── scheduler.py       # Background TaskScheduler for cron cleanups & sweeps
+│   ├── llm.py             # Local Ollama LLM integration & Smart Learning
+│   ├── server.py          # REST API endpoints & rule import/export
+│   ├── browser.py         # Safe path resolution (HOME_DIR restriction)
+│   └── security.py        # Host/Origin validation, CSRF & privacy headers
+├── build_desktop.py       # PyInstaller desktop packaging script
+├── main.py                # Server entry point
+├── desktop.py             # pywebview Desktop wrapper
+└── tests/test_all.py      # Integration test suite (32 test blocks)
+
+frontend/
+├── index.html             # Web dashboard template
+├── app.js                 # Dashboard UI logic, rule builder, duplicate tool, i18n
+└── styles.css             # Responsive styling & themes
 ```
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
-Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
-The `main` branch is protected; all changes land via reviewed PRs.
+Contributions, bug reports, and feature suggestions are welcome! Please check out [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Support the Project
+## 📄 License
 
-If Sortix saves you time, you can support development through **GitHub Sponsors** (button at the top of the repo). Thank you!
-
-## License
-
-This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
-© Marc Martí Torralba
+Sortix is open-source software licensed under the [MIT License](LICENSE).
+Created with ❤️ by Marc Martí Torralba.
