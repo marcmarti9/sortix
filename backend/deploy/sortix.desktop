@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Sortix
+Comment=Intelligent Real-time File Organizer
+Exec=__SORTIX_EXEC__
+Icon=folder-download
+Terminal=false
+Type=Application
+Categories=Utility;System;FileTools;
+StartupNotify=true
+X-GNOME-Autostart-enabled=true
