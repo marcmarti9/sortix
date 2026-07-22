@@ -13,6 +13,7 @@ from app import browser, db, llm, security
 from app.organizer import find_duplicates, organize_directory, resolve_destination_folder, undo_move
 from app.scheduler import scheduler
 from app.watcher import PatrolManager
+from config import settings as llm_settings
 from config.settings import DOWNLOADS_DIR, IGNORED_SUFFIXES, PROJECT_DIR, HOST, PORT
 
 logger = logging.getLogger("sortix.server")
@@ -429,6 +430,37 @@ def create_app() -> Flask:
         return jsonify({
             "duplicate_action": db.get_setting("duplicate_action", "suffix")
         })
+
+    @app.get("/api/llm/status")
+    def get_llm_status():
+        return jsonify({
+            "enabled": llm_settings.LLM_ENABLED,
+            "url": llm_settings.LLM_URL,
+            "model": llm_settings.LLM_MODEL,
+        })
+
+    @app.post("/api/llm/test")
+    def test_llm_connection():
+        payload = request.get_json(silent=True) or {}
+        url = (payload.get("url") or "").strip() or llm_settings.LLM_URL
+        model = (payload.get("model") or "").strip() or llm_settings.LLM_MODEL
+
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https") or not parsed.hostname:
+            return jsonify({"ok": False, "error": "URL invalida"}), 400
+
+        try:
+            import json as _json
+            import urllib.request as _urlreq
+            req = _urlreq.Request(url.rstrip("/") + "/api/tags")
+            with _urlreq.urlopen(req, timeout=5) as resp:
+                data = _json.loads(resp.read().decode("utf-8"))
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)})
+
+        models = [m.get("name", "") for m in data.get("models", []) if isinstance(m, dict)]
+        model_found = any(m == model or m.startswith(model + ":") for m in models)
+        return jsonify({"ok": True, "models": models, "model_found": model_found})
 
     @app.get("/api/watched-folders")
     def get_watched_folders():

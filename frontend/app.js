@@ -30,6 +30,14 @@ const TRANSLATIONS = {
         add_rule_btn: "Añadir regla",
         tab_general: "General",
         general_hint: "Ajustes globales del sistema para gestionar archivos duplicados e integraciones.",
+        tab_ai: "🤖 IA Local (Ollama)",
+        ai_hint: "Conecta Sortix a tu servidor de IA Local Ollama para clasificar archivos mediante modelos de lenguaje (LLM) sin enviar ningún dato a la nube.",
+        ai_status_enabled: "Ollama activado (modo LLM)",
+        ai_status_disabled: "Ollama desactivado (modo heurístico)",
+        ai_testing: "Probando...",
+        ai_test_ok: "Conexión correcta y modelo disponible",
+        ai_test_ok_no_model: "Conectado, pero el modelo indicado no está descargado en Ollama",
+        ai_test_fail: "No se pudo conectar con Ollama",
         duplicate_action_label: "Acción al encontrar archivos idénticos en destino",
         dup_opt_suffix: "Añadir sufijo numérico, ej. archivo (1).pdf",
         dup_opt_skip: "Omitir movimiento (dejar en Descargas)",
@@ -266,6 +274,14 @@ const TRANSLATIONS = {
         add_rule_btn: "Add rule",
         tab_general: "General",
         general_hint: "Global system settings to manage duplicate files and integrations.",
+        tab_ai: "🤖 Local AI (Ollama)",
+        ai_hint: "Connect Sortix to your local Ollama AI server to classify files using language models (LLM) without sending any data to the cloud.",
+        ai_status_enabled: "Ollama enabled (LLM mode)",
+        ai_status_disabled: "Ollama disabled (heuristic mode)",
+        ai_testing: "Testing...",
+        ai_test_ok: "Connected successfully and model available",
+        ai_test_ok_no_model: "Connected, but the specified model isn't pulled in Ollama",
+        ai_test_fail: "Could not connect to Ollama",
         duplicate_action_label: "Action when identical files exist in destination",
         dup_opt_suffix: "Add numeric suffix, e.g. file (1).pdf",
         dup_opt_skip: "Skip movement (keep in Downloads)",
@@ -1347,6 +1363,53 @@ if (generalSettingsForm) {
     });
 }
 
+// ---- IA local (Ollama) ------------------------------------------------------
+
+const aiUrlInput = document.getElementById("ai-url-input");
+const aiModelInput = document.getElementById("ai-model-input");
+const aiStatusBadge = document.getElementById("ai-status-badge");
+const aiStatusText = document.getElementById("ai-status-text");
+const btnTestAi = document.getElementById("btn-test-ai");
+
+async function refreshAiSettings() {
+    try {
+        const status = await fetchJSON("/api/llm/status");
+        aiUrlInput.value = status.url || aiUrlInput.value;
+        aiModelInput.value = status.model || aiModelInput.value;
+        aiStatusBadge.className = "status-pill " + (status.enabled ? "active" : "inactive");
+        aiStatusText.textContent = status.enabled ? t("ai_status_enabled") : t("ai_status_disabled");
+    } catch (err) {
+        console.error("Error loading AI settings:", err);
+    }
+}
+
+if (btnTestAi) {
+    btnTestAi.addEventListener("click", async () => {
+        const original = btnTestAi.textContent;
+        btnTestAi.disabled = true;
+        btnTestAi.textContent = t("ai_testing");
+        try {
+            const result = await fetchJSON("/api/llm/test", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url: aiUrlInput.value.trim(), model: aiModelInput.value.trim() })
+            });
+            if (result.ok && result.model_found) {
+                showStatus(t("ai_test_ok"));
+            } else if (result.ok) {
+                showStatus(t("ai_test_ok_no_model"), true);
+            } else {
+                showStatus(`${t("ai_test_fail")}: ${result.error || ""}`, true);
+            }
+        } catch (err) {
+            showStatus(err.message || t("ai_test_fail"), true);
+        } finally {
+            btnTestAi.disabled = false;
+            btnTestAi.textContent = original;
+        }
+    });
+}
+
 // ---- mantenimiento (reglas y limpieza) ---------------------------------------
 
 async function refreshMaintenance() {
@@ -1756,6 +1819,7 @@ for (const tabBtn of document.querySelectorAll(".tab-btn")) {
         if (tabBtn.dataset.tab === "maintenance") refreshMaintenance();
         if (tabBtn.dataset.tab === "watched") refreshWatchedFolders();
         if (tabBtn.dataset.tab === "stats") refreshStatistics();
+        if (tabBtn.dataset.tab === "ai") refreshAiSettings();
     });
 }
 

@@ -19,6 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from app import db
+from app.security import API_TOKEN, listening_beyond_localhost
 from app.server import create_app, resume_patrol_if_needed
 from config.settings import HOST, PORT
 
@@ -35,6 +36,15 @@ def _port_open() -> bool:
 
 
 def _start_server_in_background() -> None:
+    if listening_beyond_localhost() and not API_TOKEN:
+        print(
+            f"ERROR: HOST={HOST} expone Sortix fuera de este equipo, y Sortix\n"
+            "maneja documentos personales. Define un token en backend/.env\n"
+            "(SORTIX_TOKEN=una_clave_larga_y_aleatoria) o vuelve a HOST=127.0.0.1.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     db.init_db()
     app = create_app()
     resume_patrol_if_needed()

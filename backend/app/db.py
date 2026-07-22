@@ -104,8 +104,14 @@ def get_conn():
 # ---- reglas personalizadas -------------------------------------------------
 
 def list_rules() -> list[dict]:
+    # organizer.resolve_destination_folder toma la primera regla que
+    # coincide, asi que las reglas comodin ("*") deben ir siempre despues de
+    # las de extension concreta: por orden ASCII normal "*" (42) ordena antes
+    # que cualquier letra o digito y silenciaria toda regla especifica.
     with get_conn() as conn:
-        rows = conn.execute("SELECT * FROM rules ORDER BY extension").fetchall()
+        rows = conn.execute(
+            "SELECT * FROM rules ORDER BY (extension = '*'), extension"
+        ).fetchall()
         return [dict(r) for r in rows]
 
 
