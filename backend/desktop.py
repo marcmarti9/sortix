@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
-"""Sortix como app de escritorio: abre la interfaz en una ventana propia en
-vez de una pestana del navegador.
+"""Sortix como app de escritorio nativa con bandeja del sistema (System Tray).
 
-- Si el servidor de Sortix ya esta corriendo (p.ej. como servicio systemd),
-  simplemente abre la ventana contra el.
+- Si el servidor de Sortix ya está corriendo (p.ej. como servicio), se conecta a él.
 - Si no, lo arranca dentro de este mismo proceso.
-- La ventana usa pywebview si esta instalado (pip install pywebview); si no,
-  recurre al modo app de Chrome/Chromium/Edge/Brave (ventana sin barra de
-  navegador); y como ultimo recurso, el navegador por defecto.
+- Utiliza PyQt6 con WebEngine y QSystemTrayIcon: al pulsar 'X' la ventana se oculta a la bandeja del sistema.
+- Clic derecho en el icono de la bandeja: 'Abrir Sortix' o 'Salir de verdad'.
 """
 
 import logging
@@ -27,8 +24,8 @@ from config.settings import HOST, PORT
 
 URL = f"http://127.0.0.1:{PORT}"
 
-WINDOW_TITLE = "Sortix"
-WINDOW_SIZE = (1100, 720)
+WINDOW_TITLE = "Sortix — Intelligent File Organizer"
+WINDOW_SIZE = (1120, 740)
 
 
 def _port_open() -> bool:
@@ -50,8 +47,83 @@ def _start_server_in_background() -> None:
         if _port_open():
             return
         time.sleep(0.1)
-    print("ERROR: el servidor de Sortix no arranco.", file=sys.stderr)
+    print("ERROR: El servidor de Sortix no arrancó.", file=sys.stderr)
     sys.exit(1)
+
+
+def _open_pyqt6_app() -> bool:
+    """Abre Sortix en una ventana Qt6 nativa con icono en la bandeja del sistema (System Tray)."""
+    try:
+        from PyQt6.QtCore import QUrl, Qt
+        from PyQt6.QtGui import QAction, QIcon, QPixmap, QPainter, QColor
+        from PyQt6.QtWidgets import QApplication, QMainWindow, QMenu, QSystemTrayIcon
+        from PyQt6.QtWebEngineWidgets import QWebEngineView
+    except ImportError:
+        return False
+
+    app = QApplication.instance()
+    if not app:
+        app = QApplication(sys.argv)
+    app.setQuitOnLastWindowClosed(False)
+
+    class SortixWindow(QMainWindow):
+        def __init__(self):
+            super().__init__()
+            self.setWindowTitle(WINDOW_TITLE)
+            self.resize(*WINDOW_SIZE)
+            self.view = QWebEngineView(self)
+            self.view.setUrl(QUrl(URL))
+            self.setCentralWidget(self.view)
+
+        def closeEvent(self, event):
+            # En lugar de cerrar el proceso, ocultar a la bandeja del sistema
+            event.ignore()
+            self.hide()
+
+    window = SortixWindow()
+
+    # Dibujar icono elegante para la bandeja (Círculo índigo con S blanca)
+    pixmap = QPixmap(32, 32)
+    pixmap.fill(QColor(0, 0, 0, 0))
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setBrush(QColor(99, 102, 241)) # Indigo #6366f1
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.drawRoundedRect(2, 2, 28, 28, 8, 8)
+    
+    # Dibujar la 'S'
+    painter.setPen(QColor(255, 255, 255))
+    font = painter.font()
+    font.setBold(True)
+    font.setPixelSize(18)
+    painter.setFont(font)
+    painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, "S")
+    painter.end()
+    
+    icon = QIcon(pixmap)
+    window.setWindowIcon(icon)
+
+    tray = QSystemTrayIcon(icon, app)
+    tray.setToolTip("Sortix — Organizador en segundo plano")
+
+    menu = QMenu()
+    open_action = QAction("📂 Abrir Sortix", menu)
+    open_action.triggered.connect(lambda: (window.show(), window.raise_(), window.activateWindow()))
+
+    quit_action = QAction("❌ Salir de verdad", menu)
+    quit_action.triggered.connect(lambda: (tray.hide(), app.quit()))
+
+    menu.addAction(open_action)
+    menu.addSeparator()
+    menu.addAction(quit_action)
+
+    tray.setContextMenu(menu)
+    tray.activated.connect(lambda reason: (window.show(), window.raise_(), window.activateWindow()) if reason == QSystemTrayIcon.ActivationReason.Trigger else None)
+    tray.show()
+
+    window.show()
+    app.exec()
+    return True
 
 
 def _open_pywebview() -> bool:
@@ -65,8 +137,6 @@ def _open_pywebview() -> bool:
 
 
 def _open_browser_app_window() -> bool:
-    """Ventana 'app' de un navegador Chromium: sin barra de direcciones,
-    parece una aplicacion nativa y no requiere instalar nada."""
     candidates = [
         "chromium", "chromium-browser", "google-chrome", "google-chrome-stable",
         "brave-browser", "microsoft-edge", "msedge", "vivaldi",
@@ -91,6 +161,8 @@ def main() -> None:
         _start_server_in_background()
         started_here = True
 
+    if _open_pyqt6_app():
+        return
     if _open_pywebview():
         return
     if _open_browser_app_window():
