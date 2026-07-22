@@ -10,6 +10,7 @@ import os
 import re
 import shutil
 import tarfile
+import threading
 import time
 import zipfile
 from pathlib import Path
@@ -354,6 +355,14 @@ def resolve_destination_folder(path: Path) -> tuple[str, str, str | None]:
     return result["category"], result["folder"], result.get("rename_pattern")
 
 
+# El watcher lanza varios workers concurrentes (y el scheduler/API pueden
+# organizar en paralelo a ellos), asi que elegir un nombre de destino libre
+# y mover el archivo debe ser una seccion critica: sin este lock, dos hilos
+# podrian ver el mismo destino como libre a la vez (check-then-act) y uno
+# pisaria silenciosamente el archivo del otro con shutil.move.
+_move_lock = threading.Lock()
+
+
 def _unique_destination(dest_dir: Path, filename: str) -> Path:
     dest = dest_dir / filename
     if not dest.exists():
@@ -385,7 +394,11 @@ def organize_file(path: Path) -> dict | None:
         else:
             folder_name = path.stem
 
-        extract_dir = path.parent / folder_name
+        # Nombres sin "raiz" (p.ej. un archivo llamado literalmente ".tar.gz")
+        # dejarian folder_name vacio, y extract_dir apuntaria a la propia
+        # carpeta vigilada: el contenido se desempaquetaria sin aislar ahi,
+        # pudiendo pisar archivos existentes. Se usa un nombre de reserva.
+        extract_dir = path.parent / (folder_name or f"{path.name}_extraido")
         try:
             unpack_archive(path, extract_dir)
             source_str = str(path)
@@ -424,38 +437,42 @@ def organize_file(path: Path) -> dict | None:
     else:
         dest_filename = path.name
 
-    # Control de duplicaciones si ya existe el nombre
-    destination = dest_dir / dest_filename
-    if destination.exists():
-        # Comprobar si son exactamente identicos (tamaño y hash SHA256)
-        if destination.stat().st_size == path.stat().st_size and calculate_sha256(destination) == calculate_sha256(path):
-            action = db.get_setting("duplicate_action", "suffix")
-            if action == "delete_source":
-                try:
-                    path.unlink()
-                    logger.info("Eliminado duplicado en origen: %s (ya existe identico en destino)", path.name)
-                except OSError as exc:
-                    logger.error("error eliminando duplicado %s: %s", path.name, exc)
-                return None
-            elif action == "skip":
-                logger.info("Omitido movimiento: %s ya existe e identico en destino", path.name)
-                return None
-        
-        # Si no son identicos (o la opcion es suffix), generamos un nombre unico
-        destination = _unique_destination(dest_dir, dest_filename)
+    # Desde aqui, elegir el nombre de destino y mover el archivo debe ser
+    # atomico entre hilos (ver _move_lock) para no pisar archivos en una
+    # carrera entre workers del watcher/scheduler/API.
+    with _move_lock:
+        # Control de duplicaciones si ya existe el nombre
+        destination = dest_dir / dest_filename
+        if destination.exists():
+            # Comprobar si son exactamente identicos (tamaño y hash SHA256)
+            if destination.stat().st_size == path.stat().st_size and calculate_sha256(destination) == calculate_sha256(path):
+                action = db.get_setting("duplicate_action", "suffix")
+                if action == "delete_source":
+                    try:
+                        path.unlink()
+                        logger.info("Eliminado duplicado en origen: %s (ya existe identico en destino)", path.name)
+                    except OSError as exc:
+                        logger.error("error eliminando duplicado %s: %s", path.name, exc)
+                    return None
+                elif action == "skip":
+                    logger.info("Omitido movimiento: %s ya existe e identico en destino", path.name)
+                    return None
 
-    # Si el destino es la propia carpeta donde ya esta el archivo Y tiene el mismo nombre, no hay
-    # nada que hacer (y evita bucles de renombrado con la Patrulla Activa).
-    if destination.resolve() == path.resolve():
-        return None
+            # Si no son identicos (o la opcion es suffix), generamos un nombre unico
+            destination = _unique_destination(dest_dir, dest_filename)
 
-    try:
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        source_str = str(path)
-        shutil.move(source_str, str(destination))
-    except OSError as exc:
-        logger.error("no se pudo mover %s: %s", path.name, exc)
-        return None
+        # Si el destino es la propia carpeta donde ya esta el archivo Y tiene el mismo nombre, no hay
+        # nada que hacer (y evita bucles de renombrado con la Patrulla Activa).
+        if destination.resolve() == path.resolve():
+            return None
+
+        try:
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            source_str = str(path)
+            shutil.move(source_str, str(destination))
+        except OSError as exc:
+            logger.error("no se pudo mover %s: %s", path.name, exc)
+            return None
 
     db.log_move(
         filename=path.name,
