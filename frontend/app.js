@@ -175,7 +175,35 @@ const TRANSLATIONS = {
         stats_top_categories: "Categorías principales",
         stats_activity_title: "Actividad (últimos 30 días)",
         stats_no_data: "Aún no hay datos suficientes.",
-        stats_load_error: "No se pudieron cargar las estadísticas."
+        stats_load_error: "No se pudieron cargar las estadísticas.",
+
+        // Toolbar & Header
+        patrol_on: "REC / Vigilando",
+        patrol_off: "Pausa / Desactivado",
+        organize_title: "Organizar archivos de descargas y carpetas vigiladas inmediatamente",
+        simulate_btn: "Simular",
+        help_btn: "Ayuda",
+        help_title: "Ver tutorial y guía de uso",
+        settings_btn: "Ajustes",
+        sidebar_folders_title: "Explorador de Carpetas",
+        empty_state_title: "Carpeta sin archivos",
+        theme_dark: "Oscuro",
+        theme_light: "Claro",
+
+        // Onboarding Welcome Modal
+        welcome_title: "¡Bienvenido a Sortix!",
+        welcome_sub: "Tu organizador de archivos inteligente, 100% local y totalmente privado.",
+        slide1_title: "100% Local y Privado",
+        slide1_desc: "Tus documentos, extractos bancarios y fotos jamás salen de tu ordenador. Sortix funciona sin nube, sin telemetría y sin enviar datos a internet.",
+        slide2_title: "Patrulla Activa en Tiempo Real",
+        slide2_desc: "Sortix vigila tu carpeta de Descargas y carpetas vigiladas. Cuando termina una descarga (.crdownload / .part), la clasifica y la traslada a su sitio en segundos.",
+        slide3_title: "Bloques Scratch, OCR y Metadatos",
+        slide3_desc: "Define reglas visuales combinando extensión, palabras clave, fecha, edad (días), escaneo OCR en imágenes y etiquetas EXIF (fotos) e ID3 (música). ¡También integra Ollama para IA local!",
+        slide4_title: "Deduplicación y Smart Learning",
+        slide4_desc: "Encuentra y limpia duplicados con el análisis ultra-rápido de 2 pasos. Si corriges manualmente la ubicación de un archivo en el Historial, ¡Sortix aprenderá y te sugerirá una regla!",
+        btn_prev: "Anterior",
+        btn_next: "Siguiente",
+        btn_start: "🚀 ¡Empezar a usar Sortix!"
     },
     en: {
         patrol_label: "Active Patrol",
@@ -188,6 +216,34 @@ const TRANSLATIONS = {
         close_title: "Close",
         tab_topics: "Topics",
         tab_rules: "Rules by Extension",
+
+        // Toolbar & Header
+        patrol_on: "REC / Watching",
+        patrol_off: "Paused / Off",
+        organize_title: "Organize downloads and watched folders immediately",
+        simulate_btn: "Simulate",
+        help_btn: "Help",
+        help_title: "View tutorial and user guide",
+        settings_btn: "Settings",
+        sidebar_folders_title: "Folder Explorer",
+        empty_state_title: "Empty Folder",
+        theme_dark: "Dark",
+        theme_light: "Light",
+
+        // Onboarding Welcome Modal
+        welcome_title: "Welcome to Sortix!",
+        welcome_sub: "Your intelligent, 100% local and private file organizer.",
+        slide1_title: "100% Local & Private",
+        slide1_desc: "Your documents, invoices, and photos never leave your machine. No cloud, no tracking, and no internet data calls.",
+        slide2_title: "Real-Time Active Patrol",
+        slide2_desc: "Sortix watches your Downloads and custom folders. Once a download finishes (.crdownload / .part), it automatically files it in its target destination.",
+        slide3_title: "Scratch Rules, OCR & Metadata",
+        slide3_desc: "Define visual rules combining extension, keywords, age (days), image OCR scanning, and EXIF/ID3 metadata tags. Connect local Ollama AI whenever needed.",
+        slide4_title: "Deduplication & Smart Learning",
+        slide4_desc: "Find and clean duplicates instantly with 2-step fast hashing. If you manually correct a file placement, Sortix learns and suggests a new rule!",
+        btn_prev: "Previous",
+        btn_next: "Next",
+        btn_start: "🚀 Start using Sortix!",
         topics_hint: "A Topic is anything you want to group: your bank, the gym, a specific app, invoices from a supplier... Sortix looks at the filename and, if needed, its content, searching for these keywords.",
         topic_name_label: "Topic name",
         topic_name_placeholder: "e.g. Bank, Gym, Netflix",
@@ -389,15 +445,19 @@ function applyLanguage() {
     if (langSelect) {
         langSelect.value = currentLang;
     }
+
+    updateThemeButton();
 }
 
 // ---- tema claro/oscuro (rdsx style) ---------------------------------------
 let currentTheme = localStorage.getItem("sortix_theme") || "dark";
 
 function updateThemeButton() {
-    const btn = document.getElementById("btn-theme");
-    if (btn) {
-        btn.innerHTML = svgIcon(currentTheme === "dark" ? "sun" : "moon");
+    const iconEl = document.getElementById("theme-btn-icon");
+    const labelEl = document.getElementById("theme-btn-label");
+    if (iconEl && labelEl) {
+        iconEl.textContent = currentTheme === "dark" ? "☀️" : "🌙";
+        labelEl.textContent = currentTheme === "dark" ? t("theme_light") : t("theme_dark");
     }
 }
 
@@ -675,6 +735,13 @@ async function refreshStatus() {
         const data = await fetchJSON("/api/status");
         patrolToggle.checked = data.active;
         filesOrganizedEl.textContent = data.files_organized;
+
+        const pill = document.getElementById("patrol-status-pill");
+        const pillText = document.getElementById("patrol-status-text");
+        if (pill && pillText) {
+            pill.className = "status-pill " + (data.active ? "active" : "inactive");
+            pillText.textContent = data.active ? t("patrol_on") : t("patrol_off");
+        }
     } catch (err) {
         showStatus(t("status_conn_error"), true);
     }
@@ -689,6 +756,12 @@ patrolToggle.addEventListener("change", async () => {
             body: JSON.stringify({ active: desired }),
         });
         patrolToggle.checked = data.active;
+        const pill = document.getElementById("patrol-status-pill");
+        const pillText = document.getElementById("patrol-status-text");
+        if (pill && pillText) {
+            pill.className = "status-pill " + (data.active ? "active" : "inactive");
+            pillText.textContent = data.active ? t("patrol_on") : t("patrol_off");
+        }
         showStatus(data.active ? t("status_patrol_active") : t("status_patrol_inactive"));
     } catch (err) {
         patrolToggle.checked = !desired;
@@ -1534,6 +1607,7 @@ for (const tabBtn of document.querySelectorAll(".tab-btn")) {
         if (tabBtn.dataset.tab === "maintenance") refreshMaintenance();
         if (tabBtn.dataset.tab === "watched") refreshWatchedFolders();
         if (tabBtn.dataset.tab === "stats") refreshStatistics();
+    });
 }
 
 async function exportRules() {
@@ -1598,6 +1672,60 @@ function openSettings(tab) {
     settingsModal.showModal();
 }
 
+// ---- Onboarding Welcome Modal Controller ----------------------------------
+const welcomeModal = document.getElementById("welcome-modal");
+const btnCloseWelcome = document.getElementById("btn-close-welcome");
+const btnHelp = document.getElementById("btn-help");
+const btnOnboardPrev = document.getElementById("btn-onboard-prev");
+const btnOnboardNext = document.getElementById("btn-onboard-next");
+const btnOnboardFinish = document.getElementById("btn-onboard-finish");
+
+let currentOnboardSlide = 1;
+const totalOnboardSlides = 4;
+
+function setOnboardSlide(step) {
+    currentOnboardSlide = step;
+    document.querySelectorAll(".onboard-slide").forEach(s => {
+        const isCurrent = parseInt(s.dataset.slide, 10) === step;
+        s.hidden = !isCurrent;
+        s.classList.toggle("active", isCurrent);
+    });
+    document.querySelectorAll(".slide-dots .dot").forEach(d => {
+        d.classList.toggle("active", parseInt(d.dataset.step, 10) === step);
+    });
+    if (btnOnboardPrev) btnOnboardPrev.disabled = (step === 1);
+    if (btnOnboardNext) btnOnboardNext.hidden = (step === totalOnboardSlides);
+    if (btnOnboardFinish) btnOnboardFinish.hidden = (step !== totalOnboardSlides);
+}
+
+function openWelcomeModal() {
+    setOnboardSlide(1);
+    if (welcomeModal) welcomeModal.showModal();
+}
+
+if (btnHelp) btnHelp.addEventListener("click", openWelcomeModal);
+if (btnCloseWelcome) btnCloseWelcome.addEventListener("click", () => {
+    localStorage.setItem("sortix_onboarded", "1");
+    if (welcomeModal) welcomeModal.close();
+});
+if (btnOnboardPrev) btnOnboardPrev.addEventListener("click", () => {
+    if (currentOnboardSlide > 1) setOnboardSlide(currentOnboardSlide - 1);
+});
+if (btnOnboardNext) btnOnboardNext.addEventListener("click", () => {
+    if (currentOnboardSlide < totalOnboardSlides) setOnboardSlide(currentOnboardSlide + 1);
+});
+if (btnOnboardFinish) btnOnboardFinish.addEventListener("click", () => {
+    localStorage.setItem("sortix_onboarded", "1");
+    if (welcomeModal) welcomeModal.close();
+});
+
+document.querySelectorAll(".slide-dots .dot").forEach(dot => {
+    dot.addEventListener("click", () => {
+        const step = parseInt(dot.dataset.step, 10);
+        if (step) setOnboardSlide(step);
+    });
+});
+
 // ---- arranque ------------------------------------------------------------
 
 const langSelect = document.getElementById("lang-select");
@@ -1626,13 +1754,9 @@ async function init() {
     setInterval(refreshStatus, 5000);
 
     const onboarded = localStorage.getItem("sortix_onboarded");
-    const topicsEmpty = topicsListEl.querySelector(".empty");
-    const rulesEmpty = rulesListEl.querySelector(".empty");
-    if (!onboarded && topicsEmpty && rulesEmpty) {
-        openSettings("topics");
-        showStatus(t("welcome_message"));
+    if (!onboarded) {
+        openWelcomeModal();
     }
-    settingsModal.addEventListener("close", () => localStorage.setItem("sortix_onboarded", "1"));
 }
 
 init();

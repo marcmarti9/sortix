@@ -3,10 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sortix</title>
+    <title>Sortix — Intelligent File Organizer</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script>
-        // Prevent theme flash
+        // Prevent theme flash on startup
         const theme = localStorage.getItem("sortix_theme") || "dark";
         if (theme === "light") {
             document.documentElement.classList.add("light");
@@ -15,52 +19,189 @@
 </head>
 <body>
     <div id="app">
+        <!-- Main Top Bar Toolbar -->
         <header id="toolbar">
+            <div id="toolbar-brand">
+                <div class="brand-logo">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                        <polyline points="2 17 12 22 22 17"></polyline>
+                        <polyline points="2 12 12 17 22 12"></polyline>
+                    </svg>
+                </div>
+                <span class="brand-name">Sortix</span>
+                <span class="brand-badge">v2.0 Local AI</span>
+            </div>
+
             <div id="breadcrumbs"></div>
+
             <div id="toolbar-actions">
-                <span class="toolbar-label" data-i18n="patrol_label">Patrulla Activa</span>
-                <label class="switch" data-i18n-title="patrol_title" title="Vigilar Descargas en tiempo real">
-                    <input type="checkbox" id="patrol-toggle">
-                    <span class="slider"></span>
-                </label>
-                <button type="button" id="btn-organize" data-i18n="organize_btn">Organizar ahora</button>
-                <button type="button" id="btn-simulate" class="icon-btn" data-i18n-title="simulate_title" title="Simular organización"></button>
-                <select id="lang-select" class="lang-select" title="Idioma / Language">
-                    <option value="es">ES</option>
-                    <option value="en">EN</option>
-                </select>
-                <button type="button" id="btn-theme" class="icon-btn" data-i18n-title="theme_title" title="Cambiar tema"></button>
-                <button type="button" id="btn-settings" class="icon-btn" data-i18n-title="settings_title" title="Ajustes"></button>
+                <!-- Active Patrol Toggle & Status Badge -->
+                <div class="patrol-group" title="Vigilar Descargas en tiempo real">
+                    <span class="toolbar-label" data-i18n="patrol_label">Patrulla Activa</span>
+                    <label class="switch" data-i18n-title="patrol_title">
+                        <input type="checkbox" id="patrol-toggle">
+                        <span class="slider"></span>
+                    </label>
+                    <span id="patrol-status-pill" class="status-pill active">
+                        <span class="dot"></span>
+                        <span id="patrol-status-text" data-i18n="patrol_on">REC / Vigilando</span>
+                    </span>
+                </div>
+
+                <div class="toolbar-divider"></div>
+
+                <!-- Primary Action Buttons -->
+                <button type="button" id="btn-organize" class="btn btn-primary" data-i18n-title="organize_title" title="Organizar archivos inmediatamente">
+                    <span class="btn-icon">⚡</span>
+                    <span data-i18n="organize_btn">Organizar ahora</span>
+                </button>
+
+                <button type="button" id="btn-simulate" class="btn btn-secondary" data-i18n-title="simulate_title" title="Previsualizar qué archivos se moverían sin tocar nada">
+                    <span class="btn-icon">🧪</span>
+                    <span data-i18n="simulate_btn">Simular</span>
+                </button>
+
+                <div class="toolbar-divider"></div>
+
+                <!-- Language Selector -->
+                <div class="lang-select-wrapper" title="Seleccionar idioma / Select language">
+                    <span class="lang-icon">🌐</span>
+                    <select id="lang-select" class="lang-select">
+                        <option value="es">ES</option>
+                        <option value="en">EN</option>
+                    </select>
+                </div>
+
+                <!-- Theme Toggle -->
+                <button type="button" id="btn-theme" class="btn btn-icon-text" data-i18n-title="theme_title" title="Cambiar tema claro/oscuro">
+                    <span id="theme-btn-icon" class="btn-icon">🌙</span>
+                    <span id="theme-btn-label">Oscuro</span>
+                </button>
+
+                <!-- Onboarding Help Button -->
+                <button type="button" id="btn-help" class="btn btn-icon-text" data-i18n-title="help_title" title="Ver tutorial y guía de uso">
+                    <span class="btn-icon">❓</span>
+                    <span data-i18n="help_btn">Ayuda</span>
+                </button>
+
+                <!-- Settings Modal Toggle Button -->
+                <button type="button" id="btn-settings" class="btn btn-icon-text btn-highlight" data-i18n-title="settings_title" title="Configurar reglas, temas y mantenimiento">
+                    <span class="btn-icon">⚙️</span>
+                    <span data-i18n="settings_btn">Ajustes</span>
+                </button>
             </div>
         </header>
 
+        <!-- Main Body Area -->
         <div id="body">
+            <!-- Sidebar Navigation Tree -->
             <nav id="sidebar">
-                <div id="brand">Sortix</div>
+                <div class="sidebar-header">
+                    <span class="sidebar-title" data-i18n="sidebar_folders_title">Explorador de Carpetas</span>
+                </div>
+
                 <ul id="folder-tree"></ul>
+
                 <div id="sidebar-footer">
-                    <p><span data-i18n="organized_count_prefix">Archivos organizados</span>: <span id="files-organized-count">0</span></p>
+                    <div class="stats-card">
+                        <div class="stats-icon">📊</div>
+                        <div class="stats-info">
+                            <span class="stats-title" data-i18n="organized_count_prefix">Archivos organizados</span>
+                            <span id="files-organized-count" class="stats-count">0</span>
+                        </div>
+                    </div>
                 </div>
             </nav>
 
+            <!-- Main File Content Grid -->
             <main id="content">
                 <div id="file-grid"></div>
-                <p id="empty-state" data-i18n="empty_state" hidden>Esta carpeta esta vacia (o aun no se ha creado).</p>
+                <div id="empty-state" class="empty-state-card" hidden>
+                    <div class="empty-icon">📂</div>
+                    <h3 data-i18n="empty_state_title">Carpeta sin archivos</h3>
+                    <p data-i18n="empty_state">Esta carpeta está vacía (o aún no se ha creado).</p>
+                </div>
             </main>
         </div>
 
-        <p id="status-message" role="status"></p>
+        <!-- Global Floating Status Notification Toast -->
+        <div id="status-message-wrapper">
+            <p id="status-message" role="status"></p>
+        </div>
     </div>
 
-    <dialog id="settings-modal">
+    <!-- WELCOME ONBOARDING MODAL -->
+    <dialog id="welcome-modal" class="modal-dialog onboarding-dialog">
+        <div class="onboarding-wrapper">
+            <div class="onboarding-header">
+                <div class="onboarding-badge">👋 Sortix v2.0</div>
+                <h2 id="onboard-title" data-i18n="welcome_title">¡Bienvenido a Sortix!</h2>
+                <p id="onboard-sub" data-i18n="welcome_sub">Tu organizador de archivos inteligente, 100% local y totalmente privado.</p>
+                <button type="button" class="btn-close-modal" id="btn-close-welcome" title="Cerrar">&times;</button>
+            </div>
+
+            <!-- Slide Content Panels -->
+            <div class="onboarding-body">
+                <!-- Slide 1 -->
+                <div class="onboard-slide active" data-slide="1">
+                    <div class="slide-illustration">🔒</div>
+                    <h3 data-i18n="slide1_title">100% Local y Privado</h3>
+                    <p data-i18n="slide1_desc">Tus documentos, extractos bancarios y fotos jamás salen de tu ordenador. Sortix funciona sin nube, sin telemetría y sin enviar datos a internet.</p>
+                </div>
+
+                <!-- Slide 2 -->
+                <div class="onboard-slide" data-slide="2" hidden>
+                    <div class="slide-illustration">⚡</div>
+                    <h3 data-i18n="slide2_title">Patrulla Activa en Tiempo Real</h3>
+                    <p data-i18n="slide2_desc">Sortix vigila tu carpeta de Descargas y carpetas vigiladas. Cuando termina una descarga (.crdownload / .part), la clasifica y la traslada a su sitio en segundos.</p>
+                </div>
+
+                <!-- Slide 3 -->
+                <div class="onboard-slide" data-slide="3" hidden>
+                    <div class="slide-illustration">🧩</div>
+                    <h3 data-i18n="slide3_title">Bloques Scratch, OCR y Metadatos</h3>
+                    <p data-i18n="slide3_desc">Define reglas visuales combinando extensión, palabras clave, fecha, edad (días), escaneo OCR en imágenes y etiquetas EXIF (fotos) e ID3 (música). ¡También integra Ollama para IA local!</p>
+                </div>
+
+                <!-- Slide 4 -->
+                <div class="onboard-slide" data-slide="4" hidden>
+                    <div class="slide-illustration">🧹</div>
+                    <h3 data-i18n="slide4_title">Deduplicación y Smart Learning</h3>
+                    <p data-i18n="slide4_desc">Encuentra y limpia duplicados con el análisis ultra-rápido de 2 pasos. Si corriges manualmente la ubicación de un archivo en el Historial, ¡Sortix aprenderá y te sugerirá una regla!</p>
+                </div>
+            </div>
+
+            <!-- Footer Controls & Navigation -->
+            <div class="onboarding-footer">
+                <div class="slide-dots">
+                    <span class="dot active" data-step="1"></span>
+                    <span class="dot" data-step="2"></span>
+                    <span class="dot" data-step="3"></span>
+                    <span class="dot" data-step="4"></span>
+                </div>
+                <div class="slide-actions">
+                    <button type="button" id="btn-onboard-prev" class="btn btn-secondary" disabled data-i18n="btn_prev">Anterior</button>
+                    <button type="button" id="btn-onboard-next" class="btn btn-primary" data-i18n="btn_next">Siguiente</button>
+                    <button type="button" id="btn-onboard-finish" class="btn btn-primary btn-sparkle" hidden data-i18n="btn_start">🚀 ¡Empezar a usar Sortix!</button>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- SETTINGS & MANAGEMENT MODAL -->
+    <dialog id="settings-modal" class="modal-dialog">
         <div id="settings-header">
-            <h2 data-i18n="settings_title_modal">Ajustes de Sortix</h2>
-            <button type="button" id="btn-close-settings" class="icon-btn" data-i18n-title="close_title" title="Cerrar"></button>
+            <div class="settings-title-group">
+                <span class="settings-icon">⚙️</span>
+                <h2 data-i18n="settings_title_modal">Ajustes de Sortix</h2>
+            </div>
+            <button type="button" id="btn-close-settings" class="btn-close-modal" data-i18n-title="close_title" title="Cerrar">&times;</button>
         </div>
 
         <div id="settings-tabs">
             <button type="button" class="tab-btn active" data-tab="topics" data-i18n="tab_topics">Temas</button>
-            <button type="button" class="tab-btn" data-tab="rules" data-i18n="tab_rules">Reglas por extension</button>
+            <button type="button" class="tab-btn" data-tab="rules" data-i18n="tab_rules">Reglas por extensión</button>
             <button type="button" class="tab-btn" data-tab="history" data-i18n="tab_history">Historial</button>
             <button type="button" class="tab-btn" data-tab="duplicates" data-i18n="tab_duplicates">Deduplicar</button>
             <button type="button" class="tab-btn" data-tab="watched" data-i18n="tab_watched">Carpetas vigiladas</button>
@@ -71,9 +212,8 @@
 
         <section id="tab-topics" class="tab-panel">
             <p class="hint" data-i18n="topics_hint">
-                Un Tema es cualquier cosa que quieras agrupar: tu banco, el gimnasio,
-                una app concreta, facturas de un proveedor... Sortix mira el nombre
-                del archivo y, si hace falta, su contenido, buscando estas palabras clave.
+                Un Tema es cualquier concepto que quieras agrupar: tu banco, el gimnasio,
+                facturas de un proveedor... Sortix busca palabras clave en el nombre y contenido del archivo.
             </p>
             <ul id="topics-list" class="settings-list"></ul>
             <form id="topic-form" class="settings-form">
@@ -89,24 +229,22 @@
                 <label for="topic-rename-pattern" data-i18n="topic_rename_label">Patrón de renombrado (opcional)</label>
                 <input type="text" id="topic-rename-pattern" data-i18n-placeholder="topic_rename_placeholder" placeholder="ej. {YYYY}-{MM} - {OriginalName}.{ext}">
 
-                <button type="submit" data-i18n="add_topic_btn">Anadir tema</button>
+                <button type="submit" class="btn btn-primary" data-i18n="add_topic_btn">Añadir tema</button>
             </form>
         </section>
 
         <section id="tab-rules" class="tab-panel" hidden>
             <p class="hint" data-i18n="rules_hint">
-                Las reglas por extension son mas simples y siempre ganan a la
-                clasificacion automatica: todo archivo con esa extension va directo
-                a la carpeta que indiques.
+                Las reglas por extensión son simples y siempre ganan a la clasificación automática: todo archivo con esa extensión va directo a la carpeta que indiques.
             </p>
-            <div class="rules-actions" style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <button type="button" id="btn-export-rules" class="secondary-btn" data-i18n="export_rules_btn">Exportar reglas (JSON)</button>
-                <button type="button" id="btn-import-rules" class="secondary-btn" data-i18n="import_rules_btn">Importar reglas (JSON)</button>
+            <div class="rules-actions">
+                <button type="button" id="btn-export-rules" class="btn btn-secondary" data-i18n="export_rules_btn">Exportar reglas (JSON)</button>
+                <button type="button" id="btn-import-rules" class="btn btn-secondary" data-i18n="import_rules_btn">Importar reglas (JSON)</button>
                 <input type="file" id="import-rules-file" accept=".json" style="display: none;">
             </div>
             <ul id="rules-list" class="settings-list"></ul>
             <form id="rule-form" class="settings-form">
-                <label for="rule-extension" data-i18n="rule_ext_label">Extension</label>
+                <label for="rule-extension" data-i18n="rule_ext_label">Extensión</label>
                 <input type="text" id="rule-extension" data-i18n-placeholder="rule_ext_placeholder" placeholder="ej. pdf" required>
 
                 <label for="rule-destination" data-i18n="rule_dest_label">Carpeta destino</label>
@@ -116,19 +254,18 @@
                 <input type="text" id="rule-rename-pattern" data-i18n-placeholder="rule_rename_placeholder" placeholder="ej. {Category}/{OriginalName}.{ext}">
 
                 <label data-i18n="rule_conditions_label">Condiciones de activación (opcional)</label>
-                <div id="rule-conditions-container" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; width: 100%;"></div>
-                <button type="button" id="btn-add-condition" class="icon-btn" style="margin-bottom: 12px; align-self: flex-start; background-color: var(--bg-input); border: 1px solid var(--border-input); color: var(--color-text-active); padding: 5px 10px; font-size: 0.8rem; border-radius: 6px; cursor: pointer;">
+                <div id="rule-conditions-container" class="conditions-stack"></div>
+                <button type="button" id="btn-add-condition" class="btn btn-small btn-secondary">
                     + Añadir condición
                 </button>
 
-                <button type="submit" data-i18n="add_rule_btn">Anadir regla</button>
+                <button type="submit" class="btn btn-primary" data-i18n="add_rule_btn">Añadir regla</button>
             </form>
         </section>
 
         <section id="tab-history" class="tab-panel" hidden>
-            <p class="hint">
-                Ultimos movimientos de Sortix. Si un archivo acabo donde no
-                debia, pulsa &laquo;Deshacer&raquo; y volvera a su carpeta de origen.
+            <p class="hint" data-i18n="history_hint">
+                Últimos movimientos de Sortix. Si un archivo acabó donde no debía, pulsa «Deshacer» o «Aprender de corrección».
             </p>
             <ul id="history-list" class="settings-list history"></ul>
         </section>
@@ -139,13 +276,13 @@
             </p>
             <form id="general-settings-form" class="settings-form">
                 <label for="duplicate-action-select" data-i18n="duplicate_action_label">Acción al encontrar archivos idénticos en destino</label>
-                <select id="duplicate-action-select" class="lang-select" style="width: 100%; margin-bottom: 15px; background-color: var(--bg-input); border: 1px solid var(--border-input); color: var(--color-input-text);">
+                <select id="duplicate-action-select" class="lang-select full-width">
                     <option value="suffix" data-i18n="dup_opt_suffix">Añadir sufijo numérico, ej. archivo (1).pdf</option>
                     <option value="skip" data-i18n="dup_opt_skip">Omitir movimiento (dejar en Descargas)</option>
                     <option value="delete_source" data-i18n="dup_opt_delete_source">Eliminar archivo original (ya guardado)</option>
                 </select>
                 
-                <button type="submit" data-i18n="save_settings_btn">Guardar ajustes</button>
+                <button type="submit" class="btn btn-primary" data-i18n="save_settings_btn">Guardar ajustes</button>
             </form>
         </section>
 
@@ -154,29 +291,27 @@
                 Escanea y elimina archivos duplicados para liberar espacio.
             </p>
             
-            <div style="margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px;">
+            <div class="form-group">
                 <label for="duplicates-folder-input" data-i18n="duplicates_folder_label">Carpetas a analizar (opcional, separadas por comas):</label>
                 <input type="text" id="duplicates-folder-input" data-i18n-placeholder="duplicates_folder_placeholder" placeholder="ej. Documents, Downloads">
             </div>
 
-            <div class="duplicates-actions" style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <button type="button" id="btn-scan-duplicates" data-i18n="scan_duplicates_btn">Buscar duplicados</button>
-                <button type="button" id="btn-auto-select-duplicates" class="secondary-btn" data-i18n="auto_select_btn" disabled>Seleccionar todos menos uno</button>
-                <button type="button" id="btn-clean-duplicates" class="danger-btn" data-i18n="clean_selected_btn" disabled>Limpiar seleccionados</button>
+            <div class="duplicates-actions">
+                <button type="button" id="btn-scan-duplicates" class="btn btn-primary" data-i18n="scan_duplicates_btn">Buscar duplicados</button>
+                <button type="button" id="btn-auto-select-duplicates" class="btn btn-secondary" data-i18n="auto_select_btn" disabled>Seleccionar todos menos uno</button>
+                <button type="button" id="btn-clean-duplicates" class="btn btn-danger" data-i18n="clean_selected_btn" disabled>Limpiar seleccionados</button>
             </div>
 
-            <!-- Loading spinner -->
-            <div id="duplicates-loading" style="display: none; text-align: center; padding: 20px;">
+            <div id="duplicates-loading" class="loading-spinner-box" style="display: none;">
                 <div class="spinner"></div>
-                <p data-i18n="scanning_message" style="margin-top: 10px; color: var(--color-text-muted);">Buscando archivos duplicados...</p>
+                <p data-i18n="scanning_message">Buscando archivos duplicados...</p>
             </div>
 
-            <!-- Duplicate groups list -->
             <div id="duplicates-container">
-                <div id="duplicates-empty-msg" class="hint" data-i18n="duplicates_empty" style="display: none; text-align: center; padding: 20px;">
+                <div id="duplicates-empty-msg" class="hint text-center" data-i18n="duplicates_empty" style="display: none;">
                     No se han encontrado archivos duplicados.
                 </div>
-                <div id="duplicates-list" style="display: flex; flex-direction: column; gap: 16px; max-height: 320px; overflow-y: auto; padding-right: 5px;"></div>
+                <div id="duplicates-list" class="duplicates-stack"></div>
             </div>
         </section>
 
@@ -190,22 +325,22 @@
                 <label for="maintenance-age" data-i18n="maintenance_age_label">Edad máxima (días)</label>
                 <input type="number" id="maintenance-age" data-i18n-placeholder="maintenance_age_placeholder" placeholder="ej. 30" required min="1">
 
-                <button type="submit" data-i18n="add_maintenance_rule_btn">Añadir regla</button>
+                <button type="submit" class="btn btn-primary" data-i18n="add_maintenance_rule_btn">Añadir regla</button>
             </form>
-            <div class="maintenance-actions" style="margin-top: 15px; display: flex; gap: 10px; align-items: center;">
-                <button type="button" id="btn-run-maintenance" data-i18n="run_maintenance_btn">Ejecutar mantenimiento ahora</button>
+            <div class="maintenance-actions">
+                <button type="button" id="btn-run-maintenance" class="btn btn-secondary" data-i18n="run_maintenance_btn">Ejecutar mantenimiento ahora</button>
             </div>
         </section>
 
         <section id="tab-watched" class="tab-panel" hidden>
             <p class="hint" data-i18n="watched_hint">
-                Añade carpetas adicionales que Sortix organizará al pulsar «Organizar ahora».
+                Añade carpetas adicionales que Sortix organizará en tiempo real y al pulsar «Organizar ahora».
             </p>
             <ul id="watched-folders-list" class="settings-list"></ul>
             <form id="watched-form" class="settings-form">
                 <label for="watched-folder-path" data-i18n="watched_folder_label">Ruta de la carpeta</label>
                 <input type="text" id="watched-folder-path" data-i18n-placeholder="watched_folder_placeholder" placeholder="ej. /home/user/Desktop" required>
-                <button type="submit" data-i18n="add_watched_btn">Añadir carpeta</button>
+                <button type="submit" class="btn btn-primary" data-i18n="add_watched_btn">Añadir carpeta</button>
             </form>
         </section>
 
