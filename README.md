@@ -87,11 +87,18 @@ The compiled binary will be placed inside `backend/dist/`.
 
 ---
 
-## ⚙️ Background Service Setup
+## 🖥️ Native Desktop App & Autostart Setup
 
-Keep Sortix running silently whenever your system starts:
+Sortix can run as a **native standalone desktop application** (in its own dedicated window without any web browser UI) and start automatically whenever you log into your PC:
 
-### Linux (systemd user service)
+### Automatic Desktop & Startup Installation (Linux)
+```bash
+cd backend/deploy
+./install_autostart_desktop.sh
+```
+This registers Sortix in your desktop application menu (`~/.local/share/applications/sortix.desktop`) and sets it to auto-launch on startup (`~/.config/autostart/sortix.desktop`).
+
+### Linux Service (Headless systemd user service)
 ```bash
 cd backend/deploy
 ./install_linux.sh
@@ -110,6 +117,7 @@ powershell -ExecutionPolicy Bypass -File install_windows.ps1
 ```
 
 *(To uninstall services, run the corresponding `./uninstall_...` script in `backend/deploy/`.)*
+
 
 ---
 
