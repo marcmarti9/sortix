@@ -244,19 +244,15 @@ def create_app() -> Flask:
         extension = security.valid_extension(payload.get("extension") or "")
         destination = security.clean_destination(payload.get("destination") or "")
         rename_pattern = (payload.get("rename_pattern") or "").strip() or None
-        conditions = payload.get("conditions")
-        if isinstance(conditions, (list, dict)):
-            import json
-            conditions = json.dumps(conditions)
-        elif isinstance(conditions, str):
-            conditions = conditions.strip() or None
-        else:
-            conditions = None
+        conditions_raw = payload.get("conditions")
+        conditions = security.valid_conditions(conditions_raw) if conditions_raw else None
 
         if extension is None:
             return jsonify({"error": "extension invalida (solo letras y numeros, ej. pdf, o * para comodin)"}), 400
         if destination is None:
             return jsonify({"error": "carpeta destino invalida: debe ser relativa a tu carpeta personal, ej. Documents/Facturas"}), 400
+        if conditions_raw and conditions is None:
+            return jsonify({"error": "condiciones invalidas: campo u operador no reconocido"}), 400
         rule = db.add_rule(extension, destination, rename_pattern, conditions)
         return jsonify(rule), 201
 
@@ -291,7 +287,6 @@ def create_app() -> Flask:
 
     @app.post("/api/rules/import")
     def import_rules():
-        import json
         payload = request.get_json(silent=True)
         if payload is None:
             return jsonify({"error": "Payload JSON invalido"}), 400
@@ -319,13 +314,10 @@ def create_app() -> Flask:
             if ext is None or dest is None:
                 continue
             rename_pattern = (r.get("rename_pattern") or "").strip() or None
-            conditions = r.get("conditions")
-            if isinstance(conditions, (list, dict)):
-                conditions = json.dumps(conditions)
-            elif isinstance(conditions, str):
-                conditions = conditions.strip() or None
-            else:
-                conditions = None
+            conditions_raw = r.get("conditions")
+            conditions = security.valid_conditions(conditions_raw) if conditions_raw else None
+            if conditions_raw and conditions is None:
+                continue
             db.add_rule(ext, dest, rename_pattern, conditions)
             imported_rules += 1
 

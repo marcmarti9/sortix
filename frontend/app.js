@@ -43,8 +43,8 @@ const TRANSLATIONS = {
         btn_add_condition: "+ Añadir condición",
         cond_field_name: "Nombre de archivo",
         cond_field_stem: "Nombre (sin extensión)",
-        cond_field_ext: "Extensión",
-        cond_field_size: "Tamaño (KB)",
+        cond_field_extension: "Extensión",
+        cond_field_size_kb: "Tamaño (KB)",
         cond_field_age_days: "Antigüedad (días)",
         cond_field_content: "Contenido de texto",
         cond_field_artist: "Artista",
@@ -279,8 +279,8 @@ const TRANSLATIONS = {
         btn_add_condition: "+ Add condition",
         cond_field_name: "File name",
         cond_field_stem: "File name (no ext)",
-        cond_field_ext: "Extension",
-        cond_field_size: "Size (KB)",
+        cond_field_extension: "Extension",
+        cond_field_size_kb: "Size (KB)",
         cond_field_age_days: "Age (days)",
         cond_field_content: "Text content",
         cond_field_artist: "Artist",
@@ -1059,8 +1059,8 @@ function createConditionRow(data = {}) {
         <select class="cond-field lang-select" style="flex: 1.2; min-width: 80px; padding: 6px; background-color: var(--bg-input); border: 1px solid var(--border-input); color: var(--color-input-text); border-radius: 6px; font-size: 0.85rem;">
             <option value="name">${t("cond_field_name")}</option>
             <option value="stem">${t("cond_field_stem")}</option>
-            <option value="extension">${t("cond_field_ext")}</option>
-            <option value="size_kb">${t("cond_field_size")}</option>
+            <option value="extension">${t("cond_field_extension")}</option>
+            <option value="size_kb">${t("cond_field_size_kb")}</option>
             <option value="age_days">${t("cond_field_age_days")}</option>
             <option value="content">${t("cond_field_content")}</option>
             <option value="artist">${t("cond_field_artist")}</option>
@@ -1136,8 +1136,8 @@ async function refreshRules() {
                 const conds = JSON.parse(rule.conditions);
                 if (conds && conds.length > 0) {
                     const condStrs = conds.map(c => {
-                        const fieldName = t(`cond_field_${c.field}`) || c.field;
-                        const opName = t(`cond_op_${c.operator}`) || c.operator;
+                        const fieldName = escapeHtml(t(`cond_field_${c.field}`) || c.field);
+                        const opName = escapeHtml(t(`cond_op_${c.operator}`) || c.operator);
                         return `${fieldName} ${opName.toLowerCase()} "${escapeHtml(c.value)}"`;
                     });
                     details.push(`Condiciones: ${condStrs.join(" AND ")}`);

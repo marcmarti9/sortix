@@ -72,6 +72,55 @@ def valid_extension(raw: str) -> str | None:
     return ext if _EXTENSION_RE.fullmatch(ext) else None
 
 
+# Campos/operadores que organizer.check_conditions() sabe evaluar, y que el
+# selector de reglas del frontend expone. Cualquier otro valor se rechaza
+# antes de guardarlo: si no se valida aqui, un JSON de reglas importado (o
+# una llamada directa a la API) podria colar cadenas arbitrarias que luego
+# el frontend renderiza como texto de la condicion.
+_VALID_CONDITION_FIELDS = {
+    "name", "stem", "extension", "size_kb", "age_days", "content",
+    "artist", "album", "title", "year", "camera", "exif_date",
+}
+_VALID_CONDITION_OPERATORS = {
+    "contains", "not_contains", "equals", "starts_with", "ends_with", "gt", "lt",
+}
+
+
+def valid_conditions(raw) -> str | None:
+    """Valida y normaliza la lista de condiciones de una regla (ya sea un
+    JSON string o una lista/objeto ya parseado). Devuelve el JSON normalizado
+    o None si el formato o alguno de sus campos/operadores no es valido."""
+    import json
+
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        raw = raw.strip()
+        if not raw:
+            return None
+        try:
+            raw = json.loads(raw)
+        except Exception:
+            return None
+    if not isinstance(raw, list):
+        return None
+
+    cleaned = []
+    for cond in raw:
+        if not isinstance(cond, dict):
+            return None
+        field = cond.get("field")
+        operator = cond.get("operator")
+        value = cond.get("value")
+        if field not in _VALID_CONDITION_FIELDS or operator not in _VALID_CONDITION_OPERATORS:
+            return None
+        if not isinstance(value, (str, int, float)):
+            return None
+        cleaned.append({"field": field, "operator": operator, "value": value})
+
+    return json.dumps(cleaned) if cleaned else None
+
+
 # ---- proteccion de las peticiones HTTP -------------------------------------
 
 def _hostname_of(value: str) -> str:
@@ -131,5 +180,6 @@ __all__ = [
     "clean_destination",
     "listening_beyond_localhost",
     "safe_destination_dir",
+    "valid_conditions",
     "valid_extension",
 ]
