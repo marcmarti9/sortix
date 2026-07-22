@@ -25,6 +25,12 @@ Sortix handles sensitive personal files (tax returns, bank statements, contracts
 
 ## ✨ Features at a Glance
 
+### 🎨 Desktop UI & Global i18n
+* **Windows 11 Dark Matte Interface:** Modern dark aesthetic, interactive 2D folder cards, custom WebKit scrollbars, responsive topbar layout, and smooth Ctrl + wheel zoom scaling.
+* **Circular View Transitions Theme Toggle:** Smooth 1.2s circular theme toggle expansion animation originating directly from the button click position.
+* **Global Multi-Language Support (6 Languages):** Native auto-detection and live switching for English (EN), Spanish (ES), Chinese (ZH), Hindi (HI), French (FR), and German (DE).
+* **Dedicated Local AI (Ollama) Panel:** Configure 100% local LLM settings for smart classification fallback and automated rule learning without cloud dependencies.
+
 ### 🚀 Real-Time Automation & Multi-Folder Patrol
 * **Multi-Folder Real-Time Monitoring:** Monitors your Downloads directory and any active custom folders simultaneously in real-time. Safely waits for active downloads (`.crdownload`, `.part`) to complete before filing.
 * **Background Task Scheduler:** Automatically runs periodic folder sweeps and scheduled auto-trash cleanups in the background without blocking the UI.
