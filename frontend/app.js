@@ -417,14 +417,23 @@ const TRANSLATIONS = {
 
 let currentLang = localStorage.getItem("sortix_lang");
 if (!currentLang) {
-    const navLang = navigator.language || navigator.userLanguage;
-    currentLang = navLang && navLang.startsWith("en") ? "en" : "es";
+    const navLang = (navigator.language || navigator.userLanguage || "").toLowerCase();
+    if (navLang.startsWith("es")) currentLang = "es";
+    else if (navLang.startsWith("zh")) currentLang = "zh";
+    else if (navLang.startsWith("hi")) currentLang = "hi";
+    else if (navLang.startsWith("fr")) currentLang = "fr";
+    else if (navLang.startsWith("de")) currentLang = "de";
+    else currentLang = "en"; // Global fallback to English
 }
 
 function t(key, defaultVal) {
-    const translations = TRANSLATIONS[currentLang];
+    const translations = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
     if (translations && translations[key] !== undefined) {
         return translations[key];
+    }
+    const fallback = TRANSLATIONS.en;
+    if (fallback && fallback[key] !== undefined) {
+        return fallback[key];
     }
     return defaultVal !== undefined ? defaultVal : key;
 }
@@ -711,12 +720,17 @@ async function renderContent() {
 }
 
 function renderRootTiles() {
+    fileGridEl.innerHTML = "";
     for (const item of tree) {
-        const tile = document.createElement("div");
-        tile.className = "tile folder-tile";
-        tile.innerHTML = `${svgIcon(item.icon, "tile-icon")}<span class="tile-name">${escapeHtml(t(item.key, item.label))}</span>`;
-        tile.addEventListener("click", () => navigateTo(item.path));
-        fileGridEl.appendChild(tile);
+        const card = document.createElement("div");
+        card.className = "category-card";
+        card.innerHTML = `
+            <div class="category-card-icon">${svgIcon(item.icon)}</div>
+            <span class="category-card-title">${escapeHtml(t(item.key, item.label))}</span>
+            <span class="category-card-count">${item.count !== undefined ? item.count + ' ' + t("files_suffix", "archivos") : ''}</span>
+        `;
+        card.addEventListener("click", () => navigateTo(item.path));
+        fileGridEl.appendChild(card);
     }
 }
 
@@ -794,7 +808,6 @@ organizeBtn.addEventListener("click", async () => {
 // ---- simulación (dry run) ---------------------------------------------------
 
 if (simulateBtn) {
-    simulateBtn.innerHTML = svgIcon("eye");
     simulateBtn.addEventListener("click", async () => {
         simulateBtn.disabled = true;
         showStatus(t("status_simulating"));
@@ -810,41 +823,29 @@ if (simulateBtn) {
 }
 
 function showSimulateResults(data) {
-    // Remove any existing simulate modal
-    const existing = document.getElementById("simulate-modal");
-    if (existing) existing.remove();
+    const modal = document.getElementById("simulate-modal");
+    const container = document.getElementById("simulate-results-body");
+    const closeBtnHeader = document.getElementById("btn-close-simulate");
+    const closeBtnFooter = document.getElementById("btn-close-simulate-footer");
 
-    const moves = Array.isArray(data) ? data : [];
+    if (!modal || !container) return;
 
-    const dialog = document.createElement("dialog");
-    dialog.id = "simulate-modal";
-    dialog.className = "simulate-dialog";
+    const moves = Array.isArray(data) ? data : (data.simulated || []);
 
-    let listHtml;
-    if (moves.length === 0) {
-        listHtml = `<p class="hint">${t("simulate_no_changes")}</p>`;
+    if (!moves || moves.length === 0) {
+        container.innerHTML = `<div class="empty-state-card" style="padding: 30px;"><div class="empty-icon-badge">${svgIcon("folder")}</div><h3>${t("simulate_no_changes")}</h3><p>${t("simulate_modal_hint")}</p></div>`;
     } else {
-        listHtml = `<ul class="settings-list" style="max-height: 320px;">${moves.map(m => {
-            const filename = m.filename || "";
-            const dest = m.would_move_to || "";
-            return `<li><div class="settings-item-main"><strong>${escapeHtml(filename)}</strong><span class="muted">${t("simulate_move_label")} ${escapeHtml(dest)}</span></div></li>`;
-        }).join("")}</ul>`;
+        container.innerHTML = moves.map(item => `
+            <div class="simulate-item">
+                <span class="simulate-file">📄 ${escapeHtml(item.filename || item.file)}</span>
+                <span class="simulate-target">➔ ${escapeHtml(item.would_move_to || item.destination)}</span>
+            </div>
+        `).join("");
     }
 
-    dialog.innerHTML = `
-        <div id="settings-header">
-            <h2>${t("simulate_modal_title")}</h2>
-            <button type="button" class="icon-btn" id="btn-close-simulate">${svgIcon("close")}</button>
-        </div>
-        <p class="hint" style="margin-bottom: 6px; font-weight: 600; color: var(--color-text);">${moves.length} ${currentLang === "es" ? "archivo(s)" : "file(s)"}</p>
-        ${listHtml}
-        <button type="button" class="simulate-close-btn" id="btn-dismiss-simulate">${t("simulate_close_btn")}</button>
-    `;
-
-    document.body.appendChild(dialog);
-    dialog.querySelector("#btn-close-simulate").addEventListener("click", () => { dialog.close(); dialog.remove(); });
-    dialog.querySelector("#btn-dismiss-simulate").addEventListener("click", () => { dialog.close(); dialog.remove(); });
-    dialog.showModal();
+    if (closeBtnHeader) closeBtnHeader.onclick = () => modal.close();
+    if (closeBtnFooter) closeBtnFooter.onclick = () => modal.close();
+    modal.showModal();
 }
 
 // ---- ajustes: temas --------------------------------------------------------
@@ -1755,9 +1756,41 @@ if (themeBtn) {
     themeBtn.addEventListener("click", toggleTheme);
 }
 
+// ---- Zoom controller (Ctrl + Wheel, Ctrl + / - / 0) ---------------------
+let zoomScale = parseFloat(localStorage.getItem("sortix_zoom") || "1.0");
+
+function setZoom(scale) {
+    zoomScale = Math.min(Math.max(scale, 0.7), 1.8);
+    localStorage.setItem("sortix_zoom", zoomScale.toString());
+    document.body.style.zoom = zoomScale;
+}
+
+window.addEventListener("wheel", (e) => {
+    if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        setZoom(zoomScale + (e.deltaY < 0 ? 0.06 : -0.06));
+    }
+}, { passive: false });
+
+window.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey) {
+        if (e.key === "+" || e.key === "=") {
+            e.preventDefault();
+            setZoom(zoomScale + 0.1);
+        } else if (e.key === "-") {
+            e.preventDefault();
+            setZoom(zoomScale - 0.1);
+        } else if (e.key === "0") {
+            e.preventDefault();
+            setZoom(1.0);
+        }
+    }
+});
+
 async function init() {
     applyLanguage();
     updateThemeButton();
+    if (zoomScale !== 1.0) setZoom(zoomScale);
     await Promise.all([refreshStatus(), loadTree(), refreshTopics(), refreshRules(), refreshGeneralSettings(), refreshMaintenance(), refreshWatchedFolders()]);
     renderBreadcrumbs();
     await renderContent();
