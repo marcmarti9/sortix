@@ -185,6 +185,19 @@ def unpack_archive(archive_path: Path, extract_dir: Path) -> None:
                 member_path = os.path.abspath(os.path.join(extract_dir_abs, member.name))
                 if not (member_path == extract_dir_abs or member_path.startswith(extract_dir_abs + os.sep)):
                     raise ValueError(f"Zip-Slip detectado en archivo tar: {member.name}")
+                # Los symlinks/hardlinks pueden apuntar fuera del directorio de
+                # extraccion aunque su propio nombre sea seguro; se valida el
+                # destino del enlace por separado (CVE-2007-4559 style).
+                if member.issym():
+                    link_target = os.path.abspath(os.path.join(os.path.dirname(member_path), member.linkname))
+                elif member.islnk():
+                    link_target = os.path.abspath(os.path.join(extract_dir_abs, member.linkname))
+                else:
+                    link_target = None
+                if link_target is not None and not (
+                    link_target == extract_dir_abs or link_target.startswith(extract_dir_abs + os.sep)
+                ):
+                    raise ValueError(f"Enlace inseguro detectado en archivo tar: {member.name} -> {member.linkname}")
             tf.extractall(extract_dir_abs)
     else:
         raise ValueError(f"Formato de archivo comprimido no soportado: {archive_path}")

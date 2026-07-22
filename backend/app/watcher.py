@@ -22,17 +22,33 @@ STABLE_WAIT_TIMEOUT_TICKS = 40  # ~30s de margen para descargas grandes
 
 
 def send_notification(title: str, message: str) -> None:
-    """Envía una notificación nativa del sistema operativo de forma no bloqueante."""
+    """Envía una notificación nativa del sistema operativo de forma no bloqueante.
+
+    El título y el mensaje pueden contener nombres de archivo controlados por el
+    usuario (o por quien le envíe una descarga), así que nunca se interpolan
+    directamente en un script de AppleScript/PowerShell: se pasan como
+    argumentos separados para evitar inyección de comandos.
+    """
     def _notify():
         try:
             if sys.platform.startswith("linux"):
                 subprocess.Popen(["notify-send", title, message])
             elif sys.platform == "darwin":
-                script = f'display notification "{message}" with title "{title}"'
-                subprocess.Popen(["osascript", "-e", script])
+                script = (
+                    "on run argv\n"
+                    "  display notification (item 2 of argv) with title (item 1 of argv)\n"
+                    "end run"
+                )
+                subprocess.Popen(["osascript", "-e", script, title, message])
             elif sys.platform == "win32":
-                ps_script = f'[reflection.assembly]::loadwithpartialname("System.Windows.Forms"); [System.Windows.Forms.MessageBox]::Show("{message}", "{title}")'
-                subprocess.Popen(["powershell", "-Command", ps_script])
+                ps_script = (
+                    "param([string]$Title, [string]$Message) "
+                    "Add-Type -AssemblyName System.Windows.Forms; "
+                    "[System.Windows.Forms.MessageBox]::Show($Message, $Title) | Out-Null"
+                )
+                subprocess.Popen(
+                    ["powershell", "-NoProfile", "-Command", ps_script, "-Title", title, "-Message", message]
+                )
         except Exception:
             pass
 
