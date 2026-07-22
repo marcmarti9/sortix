@@ -181,16 +181,19 @@ const TRANSLATIONS = {
         patrol_on: "REC / Vigilando",
         patrol_off: "Pausa / Desactivado",
         organize_title: "Organizar archivos de descargas y carpetas vigiladas inmediatamente",
-        simulate_btn: "Simular",
+        simulate_btn: "Simular (Prueba)",
+        simulate_title: "Prueba tus reglas sin mover ningún archivo real",
         help_btn: "Ayuda",
-        help_title: "Ver tutorial y guía de uso",
-        settings_btn: "Ajustes",
-        sidebar_folders_title: "Explorador de Carpetas",
+        help_title: "Ver tutorial y guía paso a paso",
+        settings_btn: "Ajustes y Reglas",
+        settings_title: "Configurar reglas, temas, deduplicador y mantenimiento",
+        sidebar_folders_title: "EXPLORADOR DE CARPETAS",
         empty_state_title: "Carpeta sin archivos",
         theme_dark: "Oscuro",
         theme_light: "Claro",
 
         // Onboarding Welcome Modal
+        step_prefix: "Paso {step} de 4",
         welcome_title: "¡Bienvenido a Sortix!",
         welcome_sub: "Tu organizador de archivos inteligente, 100% local y totalmente privado.",
         slide1_title: "100% Local y Privado",
@@ -201,15 +204,15 @@ const TRANSLATIONS = {
         slide3_desc: "Define reglas visuales combinando extensión, palabras clave, fecha, edad (días), escaneo OCR en imágenes y etiquetas EXIF (fotos) e ID3 (música). ¡También integra Ollama para IA local!",
         slide4_title: "Deduplicación y Smart Learning",
         slide4_desc: "Encuentra y limpia duplicados con el análisis ultra-rápido de 2 pasos. Si corriges manualmente la ubicación de un archivo en el Historial, ¡Sortix aprenderá y te sugerirá una regla!",
-        btn_prev: "Anterior",
-        btn_next: "Siguiente",
+        btn_prev: "⬅️ Anterior",
+        btn_next: "Siguiente ➔",
         btn_start: "🚀 ¡Empezar a usar Sortix!"
     },
     en: {
         patrol_label: "Active Patrol",
         patrol_title: "Watch Downloads in real time",
         organize_btn: "Organize now",
-        settings_title: "Settings",
+        settings_title: "Settings & Rules",
         organized_count_prefix: "Organized files",
         empty_state: "This folder is empty (or has not been created yet).",
         settings_title_modal: "Sortix Settings",
@@ -221,16 +224,19 @@ const TRANSLATIONS = {
         patrol_on: "REC / Watching",
         patrol_off: "Paused / Off",
         organize_title: "Organize downloads and watched folders immediately",
-        simulate_btn: "Simulate",
+        simulate_btn: "Simulate (Test)",
+        simulate_title: "Test your rules without moving any real files",
         help_btn: "Help",
-        help_title: "View tutorial and user guide",
-        settings_btn: "Settings",
-        sidebar_folders_title: "Folder Explorer",
+        help_title: "View step-by-step tutorial and guide",
+        settings_btn: "Settings & Rules",
+        settings_title: "Configure rules, topics, deduplication and maintenance",
+        sidebar_folders_title: "FOLDER EXPLORER",
         empty_state_title: "Empty Folder",
         theme_dark: "Dark",
         theme_light: "Light",
 
         // Onboarding Welcome Modal
+        step_prefix: "Step {step} of 4",
         welcome_title: "Welcome to Sortix!",
         welcome_sub: "Your intelligent, 100% local and private file organizer.",
         slide1_title: "100% Local & Private",
@@ -241,8 +247,8 @@ const TRANSLATIONS = {
         slide3_desc: "Define visual rules combining extension, keywords, age (days), image OCR scanning, and EXIF/ID3 metadata tags. Connect local Ollama AI whenever needed.",
         slide4_title: "Deduplication & Smart Learning",
         slide4_desc: "Find and clean duplicates instantly with 2-step fast hashing. If you manually correct a file placement, Sortix learns and suggests a new rule!",
-        btn_prev: "Previous",
-        btn_next: "Next",
+        btn_prev: "⬅️ Previous",
+        btn_next: "Next ➔",
         btn_start: "🚀 Start using Sortix!",
         topics_hint: "A Topic is anything you want to group: your bank, the gym, a specific app, invoices from a supplier... Sortix looks at the filename and, if needed, its content, searching for these keywords.",
         topic_name_label: "Topic name",
@@ -1685,17 +1691,21 @@ const totalOnboardSlides = 4;
 
 function setOnboardSlide(step) {
     currentOnboardSlide = step;
+    const badge = document.getElementById("onboard-step-badge");
+    if (badge) {
+        badge.textContent = t("step_prefix", "Paso {step} de 4").replace("{step}", step);
+    }
     document.querySelectorAll(".onboard-slide").forEach(s => {
         const isCurrent = parseInt(s.dataset.slide, 10) === step;
-        s.hidden = !isCurrent;
+        s.style.display = isCurrent ? "flex" : "none";
         s.classList.toggle("active", isCurrent);
     });
     document.querySelectorAll(".slide-dots .dot").forEach(d => {
         d.classList.toggle("active", parseInt(d.dataset.step, 10) === step);
     });
     if (btnOnboardPrev) btnOnboardPrev.disabled = (step === 1);
-    if (btnOnboardNext) btnOnboardNext.hidden = (step === totalOnboardSlides);
-    if (btnOnboardFinish) btnOnboardFinish.hidden = (step !== totalOnboardSlides);
+    if (btnOnboardNext) btnOnboardNext.style.display = (step === totalOnboardSlides ? "none" : "inline-flex");
+    if (btnOnboardFinish) btnOnboardFinish.style.display = (step === totalOnboardSlides ? "inline-flex" : "none");
 }
 
 function openWelcomeModal() {

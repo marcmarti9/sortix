@@ -23,14 +23,16 @@
         <header id="toolbar">
             <div id="toolbar-brand">
                 <div class="brand-logo">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                         <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
                         <polyline points="2 17 12 22 22 17"></polyline>
                         <polyline points="2 12 12 17 22 12"></polyline>
                     </svg>
                 </div>
-                <span class="brand-name">Sortix</span>
-                <span class="brand-badge">v2.0 Local AI</span>
+                <div class="brand-titles">
+                    <span class="brand-name">Sortix</span>
+                    <span class="brand-badge">v2.0 Local AI</span>
+                </div>
             </div>
 
             <div id="breadcrumbs"></div>
@@ -45,21 +47,21 @@
                     </label>
                     <span id="patrol-status-pill" class="status-pill active">
                         <span class="dot"></span>
-                        <span id="patrol-status-text" data-i18n="patrol_on">REC / Vigilando</span>
+                        <span id="patrol-status-text" data-i18n="patrol_on">Vigilando</span>
                     </span>
                 </div>
 
                 <div class="toolbar-divider"></div>
 
                 <!-- Primary Action Buttons -->
-                <button type="button" id="btn-organize" class="btn btn-primary" data-i18n-title="organize_title" title="Organizar archivos inmediatamente">
+                <button type="button" id="btn-organize" class="btn btn-primary" data-i18n-title="organize_title" title="Organizar archivos de descargas y carpetas vigiladas inmediatamente">
                     <span class="btn-icon">⚡</span>
                     <span data-i18n="organize_btn">Organizar ahora</span>
                 </button>
 
-                <button type="button" id="btn-simulate" class="btn btn-secondary" data-i18n-title="simulate_title" title="Previsualizar qué archivos se moverían sin tocar nada">
+                <button type="button" id="btn-simulate" class="btn btn-secondary" data-i18n-title="simulate_title" title="Prueba tus reglas y previsualiza qué archivos se moverían sin tocar nada real">
                     <span class="btn-icon">🧪</span>
-                    <span data-i18n="simulate_btn">Simular</span>
+                    <span data-i18n="simulate_btn">Simular (Prueba)</span>
                 </button>
 
                 <div class="toolbar-divider"></div>
@@ -80,15 +82,15 @@
                 </button>
 
                 <!-- Onboarding Help Button -->
-                <button type="button" id="btn-help" class="btn btn-icon-text" data-i18n-title="help_title" title="Ver tutorial y guía de uso">
+                <button type="button" id="btn-help" class="btn btn-icon-text" data-i18n-title="help_title" title="Ver tutorial y guía paso a paso de uso">
                     <span class="btn-icon">❓</span>
                     <span data-i18n="help_btn">Ayuda</span>
                 </button>
 
                 <!-- Settings Modal Toggle Button -->
-                <button type="button" id="btn-settings" class="btn btn-icon-text btn-highlight" data-i18n-title="settings_title" title="Configurar reglas, temas y mantenimiento">
+                <button type="button" id="btn-settings" class="btn btn-icon-text btn-highlight" data-i18n-title="settings_title" title="Configurar reglas, temas, deduplicador y mantenimiento">
                     <span class="btn-icon">⚙️</span>
-                    <span data-i18n="settings_btn">Ajustes</span>
+                    <span data-i18n="settings_btn">Ajustes y Reglas</span>
                 </button>
             </div>
         </header>
@@ -98,7 +100,7 @@
             <!-- Sidebar Navigation Tree -->
             <nav id="sidebar">
                 <div class="sidebar-header">
-                    <span class="sidebar-title" data-i18n="sidebar_folders_title">Explorador de Carpetas</span>
+                    <span class="sidebar-title" data-i18n="sidebar_folders_title">EXPLORADOR DE CARPETAS</span>
                 </div>
 
                 <ul id="folder-tree"></ul>
@@ -131,59 +133,83 @@
         </div>
     </div>
 
-    <!-- WELCOME ONBOARDING MODAL -->
+    <!-- WELCOME ONBOARDING MODAL (1 SLIDE AT A TIME WITH STEP-BY-STEP NAVIGATION) -->
     <dialog id="welcome-modal" class="modal-dialog onboarding-dialog">
         <div class="onboarding-wrapper">
             <div class="onboarding-header">
-                <div class="onboarding-badge">👋 Sortix v2.0</div>
-                <h2 id="onboard-title" data-i18n="welcome_title">¡Bienvenido a Sortix!</h2>
-                <p id="onboard-sub" data-i18n="welcome_sub">Tu organizador de archivos inteligente, 100% local y totalmente privado.</p>
+                <div class="onboarding-top-bar">
+                    <div class="onboarding-badge">👋 Sortix v2.0</div>
+                    <span id="onboard-step-badge" class="step-badge">Paso 1 de 4</span>
+                </div>
                 <button type="button" class="btn-close-modal" id="btn-close-welcome" title="Cerrar">&times;</button>
             </div>
 
-            <!-- Slide Content Panels -->
+            <!-- Slide Content Panels (Only 1 visible at a time) -->
             <div class="onboarding-body">
                 <!-- Slide 1 -->
                 <div class="onboard-slide active" data-slide="1">
-                    <div class="slide-illustration">🔒</div>
-                    <h3 data-i18n="slide1_title">100% Local y Privado</h3>
-                    <p data-i18n="slide1_desc">Tus documentos, extractos bancarios y fotos jamás salen de tu ordenador. Sortix funciona sin nube, sin telemetría y sin enviar datos a internet.</p>
+                    <div class="slide-illustration">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                    </div>
+                    <h2 data-i18n="slide1_title">100% Local y Totalmente Privado</h2>
+                    <p data-i18n="slide1_desc">Tus documentos, facturas, contratos y fotos jamás salen de tu ordenador. Sortix funciona sin nube, sin telemetría y sin enviar un solo dato a internet. Tu privacidad está garantizada desde el primer día.</p>
                 </div>
 
                 <!-- Slide 2 -->
-                <div class="onboard-slide" data-slide="2" hidden>
-                    <div class="slide-illustration">⚡</div>
-                    <h3 data-i18n="slide2_title">Patrulla Activa en Tiempo Real</h3>
-                    <p data-i18n="slide2_desc">Sortix vigila tu carpeta de Descargas y carpetas vigiladas. Cuando termina una descarga (.crdownload / .part), la clasifica y la traslada a su sitio en segundos.</p>
+                <div class="onboard-slide" data-slide="2" style="display: none;">
+                    <div class="slide-illustration">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                        </svg>
+                    </div>
+                    <h2 data-i18n="slide2_title">Patrulla Activa en Tiempo Real</h2>
+                    <p data-i18n="slide2_desc">Sortix vigila tu carpeta de Descargas y tus carpetas vigiladas. En cuanto finaliza una descarga (.crdownload / .part), analiza el archivo y lo ubica en su carpeta destino en segundos sin molestarte.</p>
                 </div>
 
                 <!-- Slide 3 -->
-                <div class="onboard-slide" data-slide="3" hidden>
-                    <div class="slide-illustration">🧩</div>
-                    <h3 data-i18n="slide3_title">Bloques Scratch, OCR y Metadatos</h3>
-                    <p data-i18n="slide3_desc">Define reglas visuales combinando extensión, palabras clave, fecha, edad (días), escaneo OCR en imágenes y etiquetas EXIF (fotos) e ID3 (música). ¡También integra Ollama para IA local!</p>
+                <div class="onboard-slide" data-slide="3" style="display: none;">
+                    <div class="slide-illustration">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                    </div>
+                    <h2 data-i18n="slide3_title">Reglas Scratch, OCR y Metadatos</h2>
+                    <p data-i18n="slide3_desc">Define reglas visuales combinando nombre, extensión, tamaño, fecha y edad (días). Sortix realiza escaneo OCR en imágenes y lee metadatos EXIF (fotos) e ID3 (música). ¡También puedes conectar Ollama para IA local!</p>
                 </div>
 
                 <!-- Slide 4 -->
-                <div class="onboard-slide" data-slide="4" hidden>
-                    <div class="slide-illustration">🧹</div>
-                    <h3 data-i18n="slide4_title">Deduplicación y Smart Learning</h3>
-                    <p data-i18n="slide4_desc">Encuentra y limpia duplicados con el análisis ultra-rápido de 2 pasos. Si corriges manualmente la ubicación de un archivo en el Historial, ¡Sortix aprenderá y te sugerirá una regla!</p>
+                <div class="onboard-slide" data-slide="4" style="display: none;">
+                    <div class="slide-illustration">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <h2 data-i18n="slide4_title">Deduplicación y Smart Learning</h2>
+                    <p data-i18n="slide4_desc">Encuentra y elimina duplicados al instante con el análisis ultra-rápido de 2 pasos. Si desaces un movimiento o corriges manualmente la ubicación de un archivo en el Historial, ¡Sortix aprenderá y te sugerirá una regla!</p>
                 </div>
             </div>
 
             <!-- Footer Controls & Navigation -->
             <div class="onboarding-footer">
+                <button type="button" id="btn-onboard-prev" class="btn btn-secondary" disabled data-i18n="btn_prev">⬅️ Anterior</button>
+
                 <div class="slide-dots">
                     <span class="dot active" data-step="1"></span>
                     <span class="dot" data-step="2"></span>
                     <span class="dot" data-step="3"></span>
                     <span class="dot" data-step="4"></span>
                 </div>
+
                 <div class="slide-actions">
-                    <button type="button" id="btn-onboard-prev" class="btn btn-secondary" disabled data-i18n="btn_prev">Anterior</button>
-                    <button type="button" id="btn-onboard-next" class="btn btn-primary" data-i18n="btn_next">Siguiente</button>
-                    <button type="button" id="btn-onboard-finish" class="btn btn-primary btn-sparkle" hidden data-i18n="btn_start">🚀 ¡Empezar a usar Sortix!</button>
+                    <button type="button" id="btn-onboard-next" class="btn btn-primary" data-i18n="btn_next">Siguiente ➔</button>
+                    <button type="button" id="btn-onboard-finish" class="btn btn-primary btn-sparkle" style="display: none;" data-i18n="btn_start">🚀 ¡Empezar a usar Sortix!</button>
                 </div>
             </div>
         </div>
