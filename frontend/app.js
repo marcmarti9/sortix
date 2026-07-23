@@ -1,4 +1,4 @@
-/* Sortix - interfaz tipo explorador de archivos.
+/* Martix - interfaz tipo explorador de archivos.
    Sidebar con Descargas + categorias + tus Temas; panel principal con el
    contenido real de la carpeta seleccionada; ajustes en un dialog aparte. */
 
@@ -10,11 +10,11 @@ const TRANSLATIONS = {
         settings_title: "Ajustes",
         organized_count_prefix: "Archivos organizados",
         empty_state: "Esta carpeta está vacía (o aún no se ha creado).",
-        settings_title_modal: "Ajustes de Sortix",
+        settings_title_modal: "Ajustes de Martix",
         close_title: "Cerrar",
         tab_topics: "Temas",
         tab_rules: "Reglas por extensión",
-        topics_hint: "Un Tema es cualquier cosa que quieras agrupar: tu banco, el gimnasio, una app concreta, facturas de un proveedor... Sortix mira el nombre del archivo y, si hace falta, su contenido, buscando estas palabras clave.",
+        topics_hint: "Un Tema es cualquier cosa que quieras agrupar: tu banco, el gimnasio, una app concreta, facturas de un proveedor... Martix mira el nombre del archivo y, si hace falta, su contenido, buscando estas palabras clave.",
         topic_name_label: "Nombre del tema",
         topic_name_placeholder: "ej. Banco, Gimnasio, Netflix",
         topic_dest_label: "Carpeta destino",
@@ -31,7 +31,7 @@ const TRANSLATIONS = {
         tab_general: "General",
         general_hint: "Ajustes globales del sistema para gestionar archivos duplicados e integraciones.",
         tab_ai: "🤖 IA Local (Ollama)",
-        ai_hint: "Conecta Sortix a tu servidor de IA Local Ollama para clasificar archivos mediante modelos de lenguaje (LLM) sin enviar ningún dato a la nube.",
+        ai_hint: "Conecta Martix a tu servidor de IA Local Ollama para clasificar archivos mediante modelos de lenguaje (LLM) sin enviar ningún dato a la nube.",
         ai_status_enabled: "Ollama activado (modo LLM)",
         ai_status_disabled: "Ollama desactivado (modo heurístico)",
         ai_testing: "Probando...",
@@ -86,7 +86,7 @@ const TRANSLATIONS = {
         documents: "Documentos",
         other: "Otros",
         
-        status_conn_error: "No se pudo contactar con Sortix.",
+        status_conn_error: "No se pudo contactar con Martix.",
         status_patrol_active: "Patrulla activa: vigilando Descargas.",
         status_patrol_inactive: "Patrulla desactivada.",
         status_patrol_error: "No se pudo cambiar la Patrulla Activa.",
@@ -105,11 +105,12 @@ const TRANSLATIONS = {
         status_rule_save_error: "No se pudo guardar la regla.",
         theme_title: "Cambiar tema",
         
-        welcome_message: "Bienvenido: define tus primeros Temas (banco, gimnasio, apps...) y listo, Sortix se encarga solo a partir de ahora.",
+        welcome_message: "Bienvenido: define tus primeros Temas (banco, gimnasio, apps...) y listo, Martix se encarga solo a partir de ahora.",
         
         tab_history: "Historial",
-        history_hint: "Últimos movimientos de Sortix. Si un archivo acabó donde no debía, pulsa «Deshacer» y volverá a su carpeta de origen.",
-        history_empty: "Sortix aún no ha movido ningún archivo.",
+        history_title: "Historial de movimientos",
+        history_hint: "Últimos movimientos de Martix. Si un archivo acabó donde no debía, pulsa «Deshacer» y volverá a su carpeta de origen.",
+        history_empty: "Martix aún no ha movido ningún archivo.",
         history_load_error: "No se pudo cargar el historial.",
         undo_title: "Deshacer: devolver el archivo a su carpeta de origen",
         status_undone_done: '"{filename}" devuelto a su carpeta de origen.',
@@ -165,7 +166,7 @@ const TRANSLATIONS = {
 
         // Watched folders
         tab_watched: "Carpetas vigiladas",
-        watched_hint: "Añade carpetas adicionales que Sortix organizará al pulsar «Organizar ahora».",
+        watched_hint: "Añade carpetas adicionales que Martix organizará al pulsar «Organizar ahora».",
         watched_folder_label: "Ruta de la carpeta",
         watched_folder_placeholder: "ej. /home/user/Desktop",
         add_watched_btn: "Añadir carpeta",
@@ -178,7 +179,7 @@ const TRANSLATIONS = {
 
         // Statistics
         tab_stats: "Estadísticas",
-        stats_hint: "Resumen de la actividad de Sortix.",
+        stats_hint: "Resumen de la actividad de Martix.",
         stats_total_label: "archivos organizados en total",
         stats_top_categories: "Categorías principales",
         stats_activity_title: "Actividad (últimos 30 días)",
@@ -202,19 +203,19 @@ const TRANSLATIONS = {
 
         // Onboarding Welcome Modal
         step_prefix: "Paso {step} de 4",
-        welcome_title: "¡Bienvenido a Sortix!",
-        welcome_sub: "Tu organizador de archivos inteligente, 100% local y totalmente privado.",
+        welcome_title: "¡Bienvenido a Martix!",
+        welcome_subtitle: "Organizador de archivos local, privado y visual",
         slide1_title: "100% Local y Privado",
-        slide1_desc: "Tus documentos, extractos bancarios y fotos jamás salen de tu ordenador. Sortix funciona sin nube, sin telemetría y sin enviar datos a internet.",
-        slide2_title: "Patrulla Activa en Tiempo Real",
-        slide2_desc: "Sortix vigila tu carpeta de Descargas y carpetas vigiladas. Cuando termina una descarga (.crdownload / .part), la clasifica y la traslada a su sitio en segundos.",
-        slide3_title: "Bloques Scratch, OCR y Metadatos",
-        slide3_desc: "Define reglas visuales combinando extensión, palabras clave, fecha, edad (días), escaneo OCR en imágenes y etiquetas EXIF (fotos) e ID3 (música). ¡También integra Ollama para IA local!",
+        slide1_desc: "Tus documentos, extractos bancarios y fotos jamás salen de tu ordenador. Martix funciona sin nube, sin telemetría y sin enviar datos a internet.",
+        slide2_title: "Auto-Organización en Tiempo Real",
+        slide2_desc: "Martix vigila tu carpeta de Descargas y carpetas vigiladas. Cuando termina una descarga (.crdownload / .part), la clasifica y la traslada a su sitio en segundos.",
+        slide3_title: "Reglas Scratch, OCR e IA Local",
+        slide3_desc: "Define reglas por extensión, nombre, tamaño o días. Martix lee texto dentro de PDFs/imágenes (OCR) y metadatos EXIF/ID3. ¡Usa Ollama local si quieres!",
         slide4_title: "Deduplicación y Smart Learning",
-        slide4_desc: "Encuentra y limpia duplicados con el análisis ultra-rápido de 2 pasos. Si corriges manualmente la ubicación de un archivo en el Historial, ¡Sortix aprenderá y te sugerirá una regla!",
+        slide4_desc: "Encuentra y limpia duplicados con el análisis ultra-rápido de 2 pasos. Si corriges manualmente la ubicación de un archivo en el Historial, ¡Martix aprenderá y te sugerirá una regla!",
         btn_prev: "⬅️ Anterior",
         btn_next: "Siguiente ➔",
-        btn_start: "🚀 ¡Empezar a usar Sortix!"
+        btn_start: "🚀 ¡Empezar a usar Martix!"
     },
     en: {
         patrol_label: "Active Patrol",
@@ -223,7 +224,7 @@ const TRANSLATIONS = {
         settings_title: "Settings & Rules",
         organized_count_prefix: "Organized files",
         empty_state: "This folder is empty (or has not been created yet).",
-        settings_title_modal: "Sortix Settings",
+        settings_title_modal: "Martix Settings",
         close_title: "Close",
         tab_topics: "Topics",
         tab_rules: "Rules by Extension",
@@ -436,7 +437,7 @@ const TRANSLATIONS = {
         settings_title: "设置",
         organized_count_prefix: "已整理文件",
         empty_state: "此文件夹为空",
-        settings_title_modal: "Sortix 设置",
+        settings_title_modal: "Martix 设置",
         close_title: "关闭",
         tab_topics: "主题",
         tab_rules: "扩展名规则",
@@ -471,7 +472,7 @@ const TRANSLATIONS = {
         settings_title: "सेटिंग्स",
         organized_count_prefix: "व्यवस्थित फ़ाइलें",
         empty_state: "यह फ़ोल्डर खाली है",
-        settings_title_modal: "Sortix सेटिंग्स",
+        settings_title_modal: "Martix सेटिंग्स",
         close_title: "बंद करें",
         tab_topics: "विषय",
         tab_rules: "एक्सटेंशन नियम",
@@ -506,7 +507,7 @@ const TRANSLATIONS = {
         settings_title: "Paramètres",
         organized_count_prefix: "Fichiers organisés",
         empty_state: "Ce dossier est vide",
-        settings_title_modal: "Paramètres de Sortix",
+        settings_title_modal: "Paramètres de Martix",
         close_title: "Fermer",
         tab_topics: "Thèmes",
         tab_rules: "Règles par extension",
@@ -541,7 +542,7 @@ const TRANSLATIONS = {
         settings_title: "Einstellungen",
         organized_count_prefix: "Organisierte Dateien",
         empty_state: "Dieser Ordner ist leer",
-        settings_title_modal: "Sortix Einstellungen",
+        settings_title_modal: "Martix Einstellungen",
         close_title: "Schließen",
         tab_topics: "Themen",
         tab_rules: "Regeln nach Erweiterung",
@@ -571,7 +572,7 @@ const TRANSLATIONS = {
     }
 };
 
-let currentLang = localStorage.getItem("sortix_lang");
+let currentLang = localStorage.getItem("martix_lang") || localStorage.getItem("sortix_lang");
 if (!currentLang) {
     const navLang = (navigator.language || navigator.userLanguage || "").toLowerCase();
     if (navLang.startsWith("es")) currentLang = "es";
@@ -621,7 +622,7 @@ function applyLanguage() {
 }
 
 // ---- tema claro/oscuro (rdsx style) ---------------------------------------
-let currentTheme = localStorage.getItem("sortix_theme") || "dark";
+let currentTheme = localStorage.getItem("martix_theme") || localStorage.getItem("sortix_theme") || "dark";
 
 function updateThemeButton() {
     const container = document.getElementById("theme-btn-svg-container");
@@ -639,7 +640,7 @@ function toggleTheme() {
     
     const switchTheme = () => {
         currentTheme = nextTheme;
-        localStorage.setItem("sortix_theme", currentTheme);
+        localStorage.setItem("martix_theme", currentTheme);
         if (currentTheme === "light") {
             document.documentElement.classList.add("light");
         } else {
@@ -748,21 +749,21 @@ function showStatus(message, isError = false) {
     statusTimer = setTimeout(() => { statusMessageEl.textContent = ""; }, 6000);
 }
 
-// Si Sortix esta configurado con SORTIX_TOKEN (p.ej. expuesto en la LAN),
+// Si Martix esta configurado con MARTIX_TOKEN (p.ej. expuesto en la LAN),
 // la API responde 401 hasta que el navegador presente el token. Se pide una
 // vez y se guarda en localStorage.
 function withToken(options) {
-    const token = localStorage.getItem("sortix_token");
+    const token = localStorage.getItem("martix_token") || localStorage.getItem("sortix_token");
     if (!token) return options;
-    return { ...(options || {}), headers: { ...((options || {}).headers || {}), "X-Sortix-Token": token } };
+    return { ...(options || {}), headers: { ...((options || {}).headers || {}), "X-Martix-Token": token, "X-Sortix-Token": token } };
 }
 
 async function fetchJSON(url, options) {
     let res = await fetch(url, withToken(options));
     if (res.status === 401) {
-        const token = prompt("Esta instancia de Sortix esta protegida.\nIntroduce el token de acceso (SORTIX_TOKEN):");
+        const token = prompt("Esta instancia de Martix esta protegida.\nIntroduce el token de acceso (MARTIX_TOKEN):");
         if (token) {
-            localStorage.setItem("sortix_token", token.trim());
+            localStorage.setItem("martix_token", token.trim());
             res = await fetch(url, withToken(options));
         }
     }
@@ -1831,7 +1832,7 @@ async function exportRules() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "sortix_rules.json";
+        a.download = "martix_rules.json";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -1915,14 +1916,34 @@ function setOnboardSlide(step) {
     if (btnOnboardFinish) btnOnboardFinish.style.display = (step === totalOnboardSlides ? "inline-flex" : "none");
 }
 
+function markOnboarded() {
+    localStorage.setItem("martix_onboarded", "1");
+    localStorage.setItem("sortix_onboarded", "1");
+    fetch("/api/settings", withToken({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ onboarded: true })
+    })).catch(() => {});
+}
+
 function openWelcomeModal() {
     setOnboardSlide(1);
-    if (welcomeModal) welcomeModal.showModal();
+    markOnboarded();
+    if (welcomeModal) {
+        welcomeModal.showModal();
+        if (btnCloseWelcome) btnCloseWelcome.blur();
+        if (btnOnboardNext) btnOnboardNext.focus();
+    }
+}
+
+if (welcomeModal) {
+    welcomeModal.addEventListener("close", markOnboarded);
+    welcomeModal.addEventListener("cancel", markOnboarded);
 }
 
 if (btnHelp) btnHelp.addEventListener("click", openWelcomeModal);
 if (btnCloseWelcome) btnCloseWelcome.addEventListener("click", () => {
-    localStorage.setItem("sortix_onboarded", "1");
+    markOnboarded();
     if (welcomeModal) welcomeModal.close();
 });
 if (btnOnboardPrev) btnOnboardPrev.addEventListener("click", () => {
@@ -1932,7 +1953,7 @@ if (btnOnboardNext) btnOnboardNext.addEventListener("click", () => {
     if (currentOnboardSlide < totalOnboardSlides) setOnboardSlide(currentOnboardSlide + 1);
 });
 if (btnOnboardFinish) btnOnboardFinish.addEventListener("click", () => {
-    localStorage.setItem("sortix_onboarded", "1");
+    markOnboarded();
     if (welcomeModal) welcomeModal.close();
 });
 
@@ -1949,7 +1970,7 @@ const langSelect = document.getElementById("lang-select");
 if (langSelect) {
     langSelect.addEventListener("change", async (e) => {
         currentLang = e.target.value;
-        localStorage.setItem("sortix_lang", currentLang);
+        localStorage.setItem("martix_lang", currentLang);
         applyLanguage();
         await Promise.all([refreshTopics(), refreshRules(), refreshMaintenance(), refreshWatchedFolders(), loadTree()]);
         renderBreadcrumbs();
@@ -1963,11 +1984,11 @@ if (themeBtn) {
 }
 
 // ---- Zoom controller (Ctrl + Wheel, Ctrl + / - / 0) ---------------------
-let zoomScale = parseFloat(localStorage.getItem("sortix_zoom") || "1.0");
+let zoomScale = parseFloat(localStorage.getItem("martix_zoom") || localStorage.getItem("sortix_zoom") || "1.0");
 
 function setZoom(scale) {
     zoomScale = Math.min(Math.max(scale, 0.7), 1.8);
-    localStorage.setItem("sortix_zoom", zoomScale.toString());
+    localStorage.setItem("martix_zoom", zoomScale.toString());
     document.body.style.zoom = zoomScale;
 }
 
@@ -1997,13 +2018,26 @@ async function init() {
     applyLanguage();
     updateThemeButton();
     if (zoomScale !== 1.0) setZoom(zoomScale);
+
+    let isAlreadyOnboarded = !!(localStorage.getItem("martix_onboarded") || localStorage.getItem("sortix_onboarded"));
+
+    try {
+        const settingsRes = await fetch("/api/settings", withToken());
+        if (settingsRes.ok) {
+            const settingsData = await settingsRes.json();
+            if (settingsData.onboarded) {
+                isAlreadyOnboarded = true;
+                localStorage.setItem("martix_onboarded", "1");
+            }
+        }
+    } catch (e) {}
+
     await Promise.all([refreshStatus(), loadTree(), refreshTopics(), refreshRules(), refreshGeneralSettings(), refreshMaintenance(), refreshWatchedFolders()]);
     renderBreadcrumbs();
     await renderContent();
     setInterval(refreshStatus, 5000);
 
-    const onboarded = localStorage.getItem("sortix_onboarded");
-    if (!onboarded) {
+    if (!isAlreadyOnboarded) {
         openWelcomeModal();
     }
 }

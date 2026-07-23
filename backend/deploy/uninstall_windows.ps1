@@ -1,7 +1,7 @@
-# Quita la tarea programada de Sortix (no borra el proyecto ni la base de datos).
+# Quita la tarea programada de Martix (no borra el proyecto ni la base de datos).
 $ErrorActionPreference = "Stop"
 
-Stop-ScheduledTask -TaskName "Sortix" -ErrorAction SilentlyContinue
-Unregister-ScheduledTask -TaskName "Sortix" -Confirm:$false -ErrorAction SilentlyContinue
+Stop-ScheduledTask -TaskName "Martix" -ErrorAction SilentlyContinue
+Unregister-ScheduledTask -TaskName "Martix" -Confirm:$false -ErrorAction SilentlyContinue
 
-Write-Host "Tarea programada de Sortix eliminada."
+Write-Host "Tarea programada de Martix eliminada."

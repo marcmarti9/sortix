@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pruebas de integracion de Sortix. Autocontenidas: usan una carpeta
+"""Pruebas de integracion de Martix. Autocontenidas: usan una carpeta
 personal (HOME) y una base de datos temporales, sin tocar nada del usuario.
 
 Ejecutar:  ./.venv/bin/python tests/test_all.py   (desde backend/)
@@ -29,8 +29,8 @@ assert settings.DOWNLOADS_DIR == FAKE_HOME / "Downloads"
 
 from app import db, security  # noqa: E402
 
-# la BD tambien va a la carpeta temporal, no a database/sortix.db
-db.DB_PATH = FAKE_HOME / "sortix-test.db"
+# la BD tambien va a la carpeta temporal, no a database/martix.db
+db.DB_PATH = FAKE_HOME / "martix-test.db"
 
 from app.organizer import organize_directory  # noqa: E402
 
@@ -190,9 +190,9 @@ security.API_TOKEN = "secreto123"
 try:
     r = client.get("/api/status")
     assert r.status_code == 401
-    r = client.get("/api/status", headers={"X-Sortix-Token": "mal"})
+    r = client.get("/api/status", headers={"X-Martix-Token": "mal"})
     assert r.status_code == 401
-    r = client.get("/api/status", headers={"X-Sortix-Token": "secreto123"})
+    r = client.get("/api/status", headers={"X-Martix-Token": "secreto123"})
     assert r.status_code == 200
     r = client.get("/")  # el frontend se sirve sin token (no expone datos)
     assert r.status_code == 200
@@ -730,7 +730,7 @@ with patch("app.watcher.send_notification") as mock_send_notif:
             time.sleep(0.2)
             assert mock_send_notif.called
             call_args = mock_send_notif.call_args[0]
-            assert call_args[0] == "Sortix"
+            assert call_args[0] == "Martix"
             assert "notif_test.txt" in call_args[1]
 
         if test_file.exists():
@@ -802,6 +802,35 @@ rename_img = format_rename_pattern("{CAMERA}_{EXIF_DATE}.{ext}", img_test, "Pict
 assert "Canon EOS R5" in rename_img, rename_img
 assert "2025" in rename_img, rename_img
 print("OK marcadores dinamicos de renombrado con metadatos")
+
+# Test onboarded settings endpoint
+r = client.get("/api/settings")
+assert r.status_code == 200
+data = r.get_json()
+assert "onboarded" in data
+r = client.post("/api/settings", json={"onboarded": True})
+assert r.status_code == 200
+data = r.get_json()
+assert data["onboarded"] is True
+r = client.get("/api/settings")
+assert r.get_json()["onboarded"] is True
+print("OK ajuste onboarded persistente")
+
+# Test helper detection of temporary download files and zero-byte/locked files
+from config.settings import is_temporary_download_file
+from app.organizer import organize_file
+assert is_temporary_download_file(Path("Unconfirmed 12345.crdownload"))
+assert is_temporary_download_file(Path("file.zip.part"))
+assert is_temporary_download_file(Path("drive-download-20260724.zip"))
+assert not is_temporary_download_file(Path("document.pdf"))
+
+# Ensure 0-byte file or temporary download file is NOT organized by organize_file
+zero_byte_file = downloads / "drive-download-temp.zip"
+zero_byte_file.write_bytes(b"")
+assert organize_file(zero_byte_file) is None
+assert zero_byte_file.exists()
+zero_byte_file.unlink()
+print("OK proteccion de descargas temporales y archivos de 0 bytes")
 
 if img_test.exists(): img_test.unlink()
 if mp3_test.exists(): mp3_test.unlink()

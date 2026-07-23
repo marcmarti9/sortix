@@ -13,12 +13,12 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 from app.organizer import organize_file
-from config.settings import DOWNLOADS_DIR, IGNORED_SUFFIXES
+from config.settings import DOWNLOADS_DIR, IGNORED_SUFFIXES, is_temporary_download_file, is_file_in_use
 
 # Limites de estabilidad para evitar organizar descargas incompletas.
-STABLE_CHECKS_REQUIRED = 4
-STABLE_CHECK_INTERVAL = 0.75
-STABLE_WAIT_TIMEOUT_TICKS = 40  # ~30s de margen para descargas grandes
+STABLE_CHECKS_REQUIRED = 5
+STABLE_CHECK_INTERVAL = 1.0
+STABLE_WAIT_TIMEOUT_TICKS = 300  # Hasta 5 minutos para descargas grandes o preparaciones de servidor (Drive, Mega...)
 
 
 def send_notification(title: str, message: str) -> None:
@@ -78,7 +78,7 @@ class _DownloadEventHandler(FileSystemEventHandler):
             self._schedule(Path(event.dest_path))
 
     def _schedule(self, path: Path):
-        if path.suffix.lower() in IGNORED_SUFFIXES:
+        if is_temporary_download_file(path):
             return
         with self._lock:
             if path in self._in_progress:
@@ -96,10 +96,10 @@ class _DownloadEventHandler(FileSystemEventHandler):
                         filename = result.get("filename", path.name)
                         category = result.get("category", "")
                         msg = f"Archivo organizado: {filename} ({category})" if category else f"Archivo organizado: {filename}"
-                        send_notification("Sortix", msg)
+                        send_notification("Martix", msg)
             except Exception as e:
                 # Evita que el hilo muera de forma silenciosa e informa del fallo en stderr.
-                print(f"[Sortix Watcher Error] No se pudo organizar {path.name}: {e}", file=sys.stderr)
+                print(f"[Martix Watcher Error] No se pudo organizar {path.name}: {e}", file=sys.stderr)
             finally:
                 with self._lock:
                     self._in_progress.discard(path)
@@ -112,6 +112,12 @@ class _DownloadEventHandler(FileSystemEventHandler):
         for _ in range(STABLE_WAIT_TIMEOUT_TICKS):
             if not path.exists():
                 return False
+            if is_temporary_download_file(path):
+                return False
+            if is_file_in_use(path):
+                stable_count = 0
+                time.sleep(STABLE_CHECK_INTERVAL)
+                continue
             try:
                 size = path.stat().st_size
             except OSError:
@@ -123,7 +129,8 @@ class _DownloadEventHandler(FileSystemEventHandler):
             if size == last_size and size > 0:
                 stable_count += 1
                 if stable_count >= STABLE_CHECKS_REQUIRED:
-                    return True
+                    if not is_file_in_use(path):
+                        return True
             else:
                 stable_count = 0
                 last_size = size
@@ -175,7 +182,7 @@ class PatrolManager:
                             except OSError:
                                 pass
         except Exception as e:
-            print(f"[Sortix Watcher Warning] Error obteniendo carpetas vigiladas de BD: {e}", file=sys.stderr)
+            print(f"[Martix Watcher Warning] Error obteniendo carpetas vigiladas de BD: {e}", file=sys.stderr)
 
         return list(dirs)
 
@@ -192,7 +199,7 @@ class PatrolManager:
             try:
                 self._observer.unschedule(watch)
             except Exception as e:
-                print(f"[Sortix Watcher Warning] No se pudo des-vigilar {d}: {e}", file=sys.stderr)
+                print(f"[Martix Watcher Warning] No se pudo des-vigilar {d}: {e}", file=sys.stderr)
 
         # Iniciar vigilancia de nuevas carpetas
         for d in target_dirs - current_dirs:
@@ -201,7 +208,7 @@ class PatrolManager:
                 watch = self._observer.schedule(self._handler, str(d), recursive=False)
                 self._watches[d] = watch
             except Exception as e:
-                print(f"[Sortix Watcher Error] No se pudo vigilar {d}: {e}", file=sys.stderr)
+                print(f"[Martix Watcher Error] No se pudo vigilar {d}: {e}", file=sys.stderr)
 
     def start(self) -> None:
         with self._lock:

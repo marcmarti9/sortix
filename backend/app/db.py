@@ -15,7 +15,7 @@ def init_db() -> None:
 
 def _ensure_schema(conn: sqlite3.Connection) -> None:
     """Crea las tablas si faltan. Se comprueba en cada conexion (un SELECT
-    trivial) para sobrevivir a que alguien borre o vacie sortix.db con el
+    trivial) para sobrevivir a que alguien borre o vacie martix.db con el
     servidor en marcha: la siguiente peticion lo regenera en vez de dar 500."""
     required = {"rules", "moves_log", "settings", "topics", "maintenance_rules", "watched_folders"}
     existing = {

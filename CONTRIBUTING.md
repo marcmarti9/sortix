@@ -1,12 +1,12 @@
-# Contributing to Sortix
+# Contributing to Martix
 
-Thanks for your interest in improving Sortix!
+Thanks for your interest in improving Martix!
 
 ## Ground rules
 
 - The `main` branch is protected: nobody (including maintainers) pushes to it
   directly. All changes go through a pull request.
-- Keep Sortix **local-first and privacy-first**: no telemetry, no network
+- Keep Martix **local-first and privacy-first**: no telemetry, no network
   calls to external services. The optional LLM integration must only ever
   talk to a model running on the user's own machine.
 - Destination paths must always be validated as relative to the user's home

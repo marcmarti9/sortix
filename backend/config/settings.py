@@ -1,4 +1,4 @@
-"""Carga la configuracion de Sortix: variables de entorno (.env), rutas base
+"""Carga la configuracion de Martix: variables de entorno (.env), rutas base
 y el fichero de categorias. Sin dependencias externas para que corra en
 cualquier maquina modesta."""
 
@@ -18,7 +18,14 @@ else:
 
 CATEGORIES_FILE = CONFIG_DIR / "categories.json"
 
-DB_PATH = PROJECT_DIR / "database" / "sortix.db"
+DB_PATH = PROJECT_DIR / "database" / "martix.db"
+_OLD_DB_PATH = PROJECT_DIR / "database" / "sortix.db"
+if not DB_PATH.exists() and _OLD_DB_PATH.exists():
+    try:
+        _OLD_DB_PATH.rename(DB_PATH)
+    except Exception:
+        pass
+
 SCHEMA_PATH = PROJECT_DIR / "database" / "scripts" / "schema.sql"
 
 
@@ -46,9 +53,9 @@ DOWNLOADS_DIR = Path(_downloads_override).expanduser() if _downloads_override el
 
 HOME_DIR = Path.home()
 
-# Token compartido para la API (cabecera X-Sortix-Token). Opcional mientras
-# Sortix escuche solo en 127.0.0.1; obligatorio si se expone HOST a la red.
-API_TOKEN = _env.get("SORTIX_TOKEN", "").strip()
+# Token compartido para la API (cabecera X-Martix-Token). Opcional mientras
+# Martix escuche solo en 127.0.0.1; obligatorio si se expone HOST a la red.
+API_TOKEN = _env.get("MARTIX_TOKEN", _env.get("SORTIX_TOKEN", "")).strip()
 
 
 def _env_flag(name: str) -> bool:
@@ -58,12 +65,79 @@ def _env_flag(name: str) -> bool:
 # LLM local (Ollama) para nombrar carpetas de documentos que no encajan en
 # ningun Tema ni subcategoria. Apagado por defecto: en equipos modestos no
 # se nota nada y todo sigue funcionando por reglas/patrones.
-LLM_ENABLED = _env_flag("SORTIX_LLM")
-LLM_URL = _env.get("SORTIX_LLM_URL", "http://127.0.0.1:11434")
-LLM_MODEL = _env.get("SORTIX_LLM_MODEL", "llama3.2")
+LLM_ENABLED = _env_flag("MARTIX_LLM") or _env_flag("SORTIX_LLM")
+LLM_URL = _env.get("MARTIX_LLM_URL", _env.get("SORTIX_LLM_URL", "http://127.0.0.1:11434"))
+LLM_MODEL = _env.get("MARTIX_LLM_MODEL", _env.get("SORTIX_LLM_MODEL", "llama3.2"))
 
-# Extensiones de archivos temporales/parciales de navegadores: se ignoran.
-IGNORED_SUFFIXES = {".crdownload", ".part", ".tmp", ".download", ".partial"}
+import time
+
+# Extensiones y prefijos de archivos temporales/parciales de navegadores
+IGNORED_SUFFIXES = {
+    ".crdownload",
+    ".part",
+    ".tmp",
+    ".temp",
+    ".download",
+    ".partial",
+    ".opdownload",
+    ".fdown",
+    ".utether",
+    ".filepart",
+}
+
+IGNORED_PREFIXES = (
+    "unconfirmed",
+    "drive-download-",
+    ".com.google.chrome",
+    ".org.chromium",
+    "~$",
+    ".~",
+)
+
+
+def is_temporary_download_file(path: Path) -> bool:
+    """Comprueba si un archivo es un artefacto temporal o parcial de descarga del navegador."""
+    name_lower = path.name.lower()
+    suffix_lower = path.suffix.lower()
+
+    if suffix_lower in IGNORED_SUFFIXES:
+        return True
+
+    for pref in IGNORED_PREFIXES:
+        if name_lower.startswith(pref):
+            return True
+
+    if ".crdownload" in name_lower or ".part" in name_lower:
+        return True
+
+    return False
+
+
+def is_file_in_use(path: Path) -> bool:
+    """Comprueba si un archivo está siendo escrito o mantenido abierto por otra aplicación (p.ej. el navegador)."""
+    if not path.exists() or not path.is_file():
+        return False
+
+    # Prueba de apertura/bloqueo exclusivo de archivo
+    if sys.platform == "win32":
+        try:
+            with open(path, "r+b"):
+                pass
+        except (PermissionError, OSError):
+            return True
+    else:
+        try:
+            import fcntl
+            with open(path, "r+b") as f:
+                try:
+                    fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+                except (IOError, OSError):
+                    return True
+        except (PermissionError, OSError):
+            return True
+
+    return False
 
 
 def load_categories() -> dict:

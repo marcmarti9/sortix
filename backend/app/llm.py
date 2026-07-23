@@ -1,6 +1,6 @@
 """Nombrado opcional de carpetas con un LLM 100% local (Ollama).
 
-Apagado por defecto: solo se activa con SORTIX_LLM=1 en .env, pensado para
+Apagado por defecto: solo se activa con MARTIX_LLM=1 en .env, pensado para
 equipos con recursos de sobra. Cuando un documento no encaja en ningun Tema
 ni subcategoria, se le pide a un modelo local (via http://127.0.0.1:11434)
 un nombre corto de carpeta y el archivo se guarda en
@@ -19,7 +19,7 @@ import urllib.request
 
 from config.settings import LLM_ENABLED, LLM_MODEL, LLM_URL
 
-logger = logging.getLogger("sortix.llm")
+logger = logging.getLogger("martix.llm")
 
 MAX_EXCERPT_CHARS = 1200
 TIMEOUT_SECONDS = 25

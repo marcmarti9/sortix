@@ -10,7 +10,7 @@ from app import db
 from app.organizer import organize_directory, run_maintenance_cleanup
 from config.settings import DOWNLOADS_DIR
 
-logger = logging.getLogger("sortix.scheduler")
+logger = logging.getLogger("martix.scheduler")
 
 DEFAULT_INTERVAL_MINUTES = 60
 
@@ -47,7 +47,7 @@ class TaskScheduler:
             self._thread = threading.Thread(
                 target=self._run_loop,
                 daemon=True,
-                name="SortixSchedulerThread"
+                name="MartixSchedulerThread"
             )
             self._thread.start()
             logger.info("TaskScheduler iniciado (intervalo: %d min, enabled: %s)", self._interval_minutes, self._enabled)

@@ -2,6 +2,7 @@ backend/.venv/
 **/__pycache__/
 *.pyc
 database/sortix.db
+database/martix.db
 backend/.env
 .claude/
 backend/build/

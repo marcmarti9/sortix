@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.sortix.app</string>
+    <string>com.martix.app</string>
     <key>ProgramArguments</key>
     <array>
         <string>__PYTHON_BIN__</string>
@@ -18,8 +18,8 @@
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>__BACKEND_DIR__/sortix.log</string>
+    <string>__BACKEND_DIR__/martix.log</string>
     <key>StandardErrorPath</key>
-    <string>__BACKEND_DIR__/sortix.log</string>
+    <string>__BACKEND_DIR__/martix.log</string>
 </dict>
 </plist>

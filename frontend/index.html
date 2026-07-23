@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sortix — File Explorer Organizer</title>
+    <title>Martix — File Explorer Organizer</title>
     <link rel="stylesheet" href="styles.css">
     <script>
-        const theme = localStorage.getItem("sortix_theme") || "dark";
+        const theme = localStorage.getItem("martix_theme") || localStorage.getItem("sortix_theme") || "dark";
         if (theme === "light") {
             document.documentElement.classList.add("light");
         }
@@ -24,7 +24,7 @@
                         <polyline points="2 12 12 17 22 12"></polyline>
                     </svg>
                 </div>
-                <span class="brand-name">Sortix</span>
+                <span class="brand-name">Martix</span>
             </div>
 
             <div id="breadcrumbs"></div>
@@ -136,7 +136,7 @@
         <div class="onboarding-wrapper">
             <div class="onboarding-header">
                 <div class="onboarding-top-bar">
-                    <div class="onboarding-badge">Sortix</div>
+                    <div class="onboarding-badge">Martix</div>
                     <span id="onboard-step-badge" class="step-badge">Paso 1 de 4</span>
                 </div>
                 <button type="button" class="btn-close-modal" id="btn-close-welcome" title="Cerrar">&times;</button>
@@ -150,7 +150,7 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                     </div>
                     <h2 data-i18n="slide1_title">100% Local y Totalmente Privado</h2>
-                    <p data-i18n="slide1_desc">Tus documentos, facturas, contratos y fotos jamás salen de tu ordenador. Sortix funciona sin nube, sin telemetría y sin enviar un solo dato a internet. Tu privacidad está garantizada desde el primer día.</p>
+                    <p data-i18n="slide1_desc">Tus documentos, facturas, contratos y fotos jamás salen de tu ordenador. Martix funciona sin nube, sin telemetría y sin enviar un solo dato a internet. Tu privacidad está garantizada desde el primer día.</p>
                 </div>
 
                 <!-- Slide 2 -->
@@ -159,7 +159,7 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                     </div>
                     <h2 data-i18n="slide2_title">Auto-Organización en Tiempo Real</h2>
-                    <p data-i18n="slide2_desc">Sortix monitoriza tu carpeta de Descargas. En cuanto termina una descarga (.crdownload / .part), analiza el archivo y lo traslada automáticamente a su destino (Imágenes, Vídeos, Documentos, Música...). ¡Tu carpeta de descargas estará siempre limpia!</p>
+                    <p data-i18n="slide2_desc">Martix monitoriza tu carpeta de Descargas. En cuanto termina una descarga (.crdownload / .part), analiza el archivo y lo traslada automáticamente a su destino (Imágenes, Vídeos, Documentos, Música...). ¡Tu carpeta de descargas estará siempre limpia!</p>
                 </div>
 
                 <!-- Slide 3 -->
@@ -168,7 +168,7 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                     </div>
                     <h2 data-i18n="slide3_title">Reglas Scratch, OCR e IA Local (Ollama)</h2>
-                    <p data-i18n="slide3_desc">Define reglas visuales por extensión, nombre, tamaño o antigüedad (días). Sortix realiza escaneo OCR en imágenes y lee metadatos EXIF (fotos) e ID3 (música). ¡Integra IA local con Ollama para clasificar sin internet!</p>
+                    <p data-i18n="slide3_desc">Define reglas visuales por extensión, nombre, tamaño o antigüedad (días). Martix realiza escaneo OCR en imágenes y lee metadatos EXIF (fotos) e ID3 (música). ¡Integra IA local con Ollama para clasificar sin internet!</p>
                 </div>
 
                 <!-- Slide 4 -->
@@ -177,7 +177,7 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="20 6 9 17 4 12"/></svg>
                     </div>
                     <h2 data-i18n="slide4_title">Deduplicación y Smart Learning</h2>
-                    <p data-i18n="slide4_desc">Encuentra y limpia duplicados con el análisis ultra-rápido de 2 pasos. Si corriges manualmente la ubicación de un archivo en el Historial, Sortix aprenderá y te sugerirá crear una nueva regla automáticamente.</p>
+                    <p data-i18n="slide4_desc">Encuentra y limpia duplicados con el análisis ultra-rápido de 2 pasos. Si corriges manualmente la ubicación de un archivo en el Historial, Martix aprenderá y te sugerirá crear una nueva regla automáticamente.</p>
                 </div>
             </div>
 
@@ -193,8 +193,8 @@
                 </div>
 
                 <div class="slide-actions">
-                    <button type="button" id="btn-onboard-next" class="btn btn-primary" data-i18n="btn_next">Siguiente ➔</button>
-                    <button type="button" id="btn-onboard-finish" class="btn btn-primary" style="display: none;" data-i18n="btn_start">🚀 ¡Empezar a usar Sortix!</button>
+                    <button type="button" id="btn-onboard-next" class="btn btn-primary" autofocus data-i18n="btn_next">Siguiente ➔</button>
+                    <button type="button" id="btn-onboard-finish" class="btn btn-primary" style="display: none;" data-i18n="btn_start">🚀 ¡Empezar a usar Martix!</button>
                 </div>
             </div>
         </div>
@@ -221,7 +221,7 @@
         <div id="settings-header">
             <div class="settings-title-group">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1z"/></svg>
-                <h2 data-i18n="settings_title_modal">Ajustes de Sortix</h2>
+                <h2 data-i18n="settings_title_modal">Ajustes de Martix</h2>
             </div>
             <button type="button" id="btn-close-settings" class="btn-close-modal" data-i18n-title="close_title" title="Cerrar">&times;</button>
         </div>
@@ -241,7 +241,7 @@
         <section id="tab-topics" class="tab-panel">
             <p class="hint" data-i18n="topics_hint">
                 Un Tema es cualquier concepto que quieras agrupar: tu banco, el gimnasio,
-                facturas de un proveedor... Sortix busca palabras clave en el nombre y contenido del archivo.
+                facturas de un proveedor... Martix busca palabras clave en el nombre y contenido del archivo.
             </p>
             <ul id="topics-list" class="settings-list"></ul>
             <form id="topic-form" class="settings-form">
@@ -294,7 +294,7 @@
         <!-- LOCAL AI (OLLAMA) TAB -->
         <section id="tab-ai" class="tab-panel" hidden>
             <p class="hint" data-i18n="ai_hint">
-                Conecta Sortix a tu servidor de IA Local Ollama para clasificar archivos mediante modelos de lenguaje (LLM) sin enviar ningún dato a la nube.
+                Conecta Martix a tu servidor de IA Local Ollama para clasificar archivos mediante modelos de lenguaje (LLM) sin enviar ningún dato a la nube.
             </p>
             <div class="settings-form">
                 <div class="status-pill active" id="ai-status-badge" style="width: fit-content;">
@@ -314,7 +314,7 @@
 
         <section id="tab-history" class="tab-panel" hidden>
             <p class="hint" data-i18n="history_hint">
-                Últimos movimientos de Sortix. Si un archivo acabó donde no debía, pulsa «Deshacer» o «Aprender de corrección».
+                Últimos movimientos de Martix. Si un archivo acabó donde no debía, pulsa «Deshacer» o «Aprender de corrección».
             </p>
             <ul id="history-list" class="settings-list history"></ul>
         </section>
@@ -383,7 +383,7 @@
 
         <section id="tab-watched" class="tab-panel" hidden>
             <p class="hint" data-i18n="watched_hint">
-                Añade carpetas adicionales que Sortix organizará en tiempo real y al pulsar «Organizar ahora».
+                Añade carpetas adicionales que Martix organizará en tiempo real y al pulsar «Organizar ahora».
             </p>
             <ul id="watched-folders-list" class="settings-list"></ul>
             <form id="watched-form" class="settings-form">
@@ -395,7 +395,7 @@
 
         <section id="tab-stats" class="tab-panel" hidden>
             <p class="hint" data-i18n="stats_hint">
-                Resumen de la actividad de Sortix.
+                Resumen de la actividad de Martix.
             </p>
             <div id="stats-total" class="stats-big-number">
                 <span class="stats-number" id="stats-total-count">0</span>

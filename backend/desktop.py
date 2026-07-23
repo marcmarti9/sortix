@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Sortix como app de escritorio nativa con bandeja del sistema (System Tray).
+"""Martix como app de escritorio nativa con bandeja del sistema (System Tray).
 
-- Si el servidor de Sortix ya está corriendo (p.ej. como servicio), se conecta a él.
+- Si el servidor de Martix ya está corriendo (p.ej. como servicio), se conecta a él.
 - Si no, lo arranca dentro de este mismo proceso.
 - Utiliza PyQt6 con WebEngine y QSystemTrayIcon: al pulsar 'X' la ventana se oculta a la bandeja del sistema.
-- Clic derecho en el icono de la bandeja: 'Abrir Sortix' o 'Salir de verdad'.
+- Clic derecho en el icono de la bandeja: 'Abrir Martix' o 'Salir de verdad'.
 """
 
 import logging
@@ -25,7 +25,7 @@ from config.settings import HOST, PORT
 
 URL = f"http://127.0.0.1:{PORT}"
 
-WINDOW_TITLE = "Sortix — Intelligent File Organizer"
+WINDOW_TITLE = "Martix — Intelligent File Organizer"
 WINDOW_SIZE = (1120, 740)
 
 
@@ -38,9 +38,9 @@ def _port_open() -> bool:
 def _start_server_in_background() -> None:
     if listening_beyond_localhost() and not API_TOKEN:
         print(
-            f"ERROR: HOST={HOST} expone Sortix fuera de este equipo, y Sortix\n"
+            f"ERROR: HOST={HOST} expone Martix fuera de este equipo, y Martix\n"
             "maneja documentos personales. Define un token en backend/.env\n"
-            "(SORTIX_TOKEN=una_clave_larga_y_aleatoria) o vuelve a HOST=127.0.0.1.",
+            "(MARTIX_TOKEN=una_clave_larga_y_aleatoria) o vuelve a HOST=127.0.0.1.",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -57,12 +57,12 @@ def _start_server_in_background() -> None:
         if _port_open():
             return
         time.sleep(0.1)
-    print("ERROR: El servidor de Sortix no arrancó.", file=sys.stderr)
+    print("ERROR: El servidor de Martix no arrancó.", file=sys.stderr)
     sys.exit(1)
 
 
 def _open_pyqt6_app() -> bool:
-    """Abre Sortix en una ventana Qt6 nativa con icono en la bandeja del sistema (System Tray)."""
+    """Abre Martix en una ventana Qt6 nativa con icono en la bandeja del sistema (System Tray)."""
     try:
         from PyQt6.QtCore import QUrl, Qt
         from PyQt6.QtGui import QAction, QIcon, QPixmap, QPainter, QColor
@@ -76,7 +76,7 @@ def _open_pyqt6_app() -> bool:
         app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
 
-    class SortixWindow(QMainWindow):
+    class MartixWindow(QMainWindow):
         def __init__(self):
             super().__init__()
             self.setWindowTitle(WINDOW_TITLE)
@@ -90,9 +90,9 @@ def _open_pyqt6_app() -> bool:
             event.ignore()
             self.hide()
 
-    window = SortixWindow()
+    window = MartixWindow()
 
-    # Dibujar icono elegante para la bandeja (Círculo índigo con S blanca)
+    # Dibujar icono elegante para la bandeja (Círculo índigo con M blanca)
     pixmap = QPixmap(32, 32)
     pixmap.fill(QColor(0, 0, 0, 0))
     painter = QPainter(pixmap)
@@ -101,23 +101,23 @@ def _open_pyqt6_app() -> bool:
     painter.setPen(Qt.PenStyle.NoPen)
     painter.drawRoundedRect(2, 2, 28, 28, 8, 8)
     
-    # Dibujar la 'S'
+    # Dibujar la 'M'
     painter.setPen(QColor(255, 255, 255))
     font = painter.font()
     font.setBold(True)
     font.setPixelSize(18)
     painter.setFont(font)
-    painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, "S")
+    painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, "M")
     painter.end()
     
     icon = QIcon(pixmap)
     window.setWindowIcon(icon)
 
     tray = QSystemTrayIcon(icon, app)
-    tray.setToolTip("Sortix — Organizador en segundo plano")
+    tray.setToolTip("Martix — Organizador en segundo plano")
 
     menu = QMenu()
-    open_action = QAction("📂 Abrir Sortix", menu)
+    open_action = QAction("📂 Abrir Martix", menu)
     open_action.triggered.connect(lambda: (window.show(), window.raise_(), window.activateWindow()))
 
     quit_action = QAction("❌ Salir de verdad", menu)
@@ -181,7 +181,7 @@ def main() -> None:
     import webbrowser
     webbrowser.open(URL)
     if started_here:
-        print(f"Sortix corriendo en {URL} (Ctrl+C para salir).")
+        print(f"Martix corriendo en {URL} (Ctrl+C para salir).")
         try:
             while True:
                 time.sleep(3600)

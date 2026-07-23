@@ -19,9 +19,9 @@ from app import db
 from app.browser import resolve_safe_path
 from app.classifier import classify, normalize, _extract_content, extract_metadata
 from app.security import safe_destination_dir
-from config.settings import DOWNLOADS_DIR, HOME_DIR, IGNORED_SUFFIXES
+from config.settings import DOWNLOADS_DIR, HOME_DIR, IGNORED_SUFFIXES, is_temporary_download_file, is_file_in_use
 
-logger = logging.getLogger("sortix.organizer")
+logger = logging.getLogger("martix.organizer")
 
 
 def calculate_sha256(path: Path) -> str:
@@ -382,6 +382,18 @@ def organize_file(path: Path) -> dict | None:
     if not path.exists() or not path.is_file():
         return None
 
+    if is_temporary_download_file(path):
+        return None
+
+    try:
+        if path.stat().st_size == 0:
+            return None
+    except OSError:
+        return None
+
+    if is_file_in_use(path):
+        return None
+
     name_lower = path.name.lower()
     is_archive = name_lower.endswith((".zip", ".tar", ".tar.gz", ".tgz", ".gz"))
     unpack_enabled = str(db.get_setting("unpack_archives", "true")).lower() in ("true", "1")
@@ -495,7 +507,12 @@ def organize_directory(directory: Path) -> list[dict]:
     if not directory.exists():
         return moved
     for entry in sorted(directory.iterdir()):
-        if not entry.is_file() or entry.suffix.lower() in IGNORED_SUFFIXES:
+        if not entry.is_file() or is_temporary_download_file(entry) or is_file_in_use(entry):
+            continue
+        try:
+            if entry.stat().st_size == 0:
+                continue
+        except OSError:
             continue
         result = organize_file(entry)
         if result:

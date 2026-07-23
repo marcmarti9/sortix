@@ -1,5 +1,5 @@
 [Unit]
-Description=Sortix - organizador automatico de descargas
+Description=Martix - organizador automatico de descargas
 After=network.target
 
 [Service]

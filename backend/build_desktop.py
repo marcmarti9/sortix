@@ -29,7 +29,7 @@ def build() -> None:
         sys.executable,
         "-m",
         "PyInstaller",
-        "--name=Sortix",
+        "--name=Martix",
         "--onefile",
         "--add-data",
         frontend_data,
@@ -41,7 +41,7 @@ def build() -> None:
         str(desktop_script),
     ]
 
-    print("Iniciando empaquetado de Sortix...")
+    print("Iniciando empaquetado de Martix...")
     print("Comando:", " ".join(cmd))
 
     result = subprocess.run(cmd, cwd=str(backend_dir))

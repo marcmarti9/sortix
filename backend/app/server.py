@@ -1,4 +1,4 @@
-"""Servidor web de Sortix: sirve la interfaz (frontend/) y expone la API
+"""Servidor web de Martix: sirve la interfaz (frontend/) y expone la API
 que usa para controlar la Patrulla Activa, lanzar una organizacion manual,
 gestionar reglas/Temas y deshacer movimientos del historial."""
 
@@ -16,7 +16,7 @@ from app.watcher import PatrolManager
 from config import settings as llm_settings
 from config.settings import DOWNLOADS_DIR, IGNORED_SUFFIXES, PROJECT_DIR, HOST, PORT
 
-logger = logging.getLogger("sortix.server")
+logger = logging.getLogger("martix.server")
 
 import sys
 
@@ -168,7 +168,7 @@ def create_app() -> Flask:
         if isinstance(exc, HTTPException):
             return exc
         logger.exception("error inesperado atendiendo %s", request.path)
-        return jsonify({"error": "error interno de Sortix"}), 500
+        return jsonify({"error": "error interno de Martix"}), 500
 
     @app.get("/")
     def index():
@@ -418,6 +418,7 @@ def create_app() -> Flask:
     def get_settings():
         return jsonify({
             "duplicate_action": db.get_setting("duplicate_action", "suffix"),
+            "onboarded": db.get_setting("onboarded", "0") == "1",
         })
 
     @app.post("/api/settings")
@@ -427,8 +428,12 @@ def create_app() -> Flask:
             action = payload["duplicate_action"]
             if action in ("suffix", "skip", "delete_source"):
                 db.set_setting("duplicate_action", action)
+        if "onboarded" in payload:
+            onboarded_val = "1" if payload["onboarded"] else "0"
+            db.set_setting("onboarded", onboarded_val)
         return jsonify({
-            "duplicate_action": db.get_setting("duplicate_action", "suffix")
+            "duplicate_action": db.get_setting("duplicate_action", "suffix"),
+            "onboarded": db.get_setting("onboarded", "0") == "1",
         })
 
     @app.get("/api/llm/status")

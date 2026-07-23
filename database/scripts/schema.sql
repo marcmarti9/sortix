@@ -1,4 +1,4 @@
--- Esquema SQLite de Sortix
+-- Esquema SQLite de Martix
 
 CREATE TABLE IF NOT EXISTS rules (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

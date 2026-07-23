@@ -1,7 +1,7 @@
 [Desktop Entry]
-Name=Sortix
+Name=Martix
 Comment=Intelligent Real-time File Organizer
-Exec=__SORTIX_EXEC__
+Exec=__MARTIX_EXEC__
 Icon=folder-download
 Terminal=false
 Type=Application

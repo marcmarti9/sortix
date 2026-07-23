@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Punto de entrada de Sortix. Pensado tanto para ejecutarlo a mano como
+"""Punto de entrada de Martix. Pensado tanto para ejecutarlo a mano como
 para lanzarlo desde systemd (Linux) o el Programador de tareas (Windows)."""
 
 import logging
@@ -22,9 +22,9 @@ def main() -> None:
 
     if listening_beyond_localhost() and not API_TOKEN:
         print(
-            f"ERROR: HOST={HOST} expone Sortix fuera de este equipo, y Sortix\n"
+            f"ERROR: HOST={HOST} expone Martix fuera de este equipo, y Martix\n"
             "maneja documentos personales. Define un token en backend/.env\n"
-            "(SORTIX_TOKEN=una_clave_larga_y_aleatoria) o vuelve a HOST=127.0.0.1.",
+            "(MARTIX_TOKEN=una_clave_larga_y_aleatoria) o vuelve a HOST=127.0.0.1.",
             file=sys.stderr,
         )
         sys.exit(1)

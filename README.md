@@ -5,17 +5,17 @@
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License" />
 </p>
 
-<h1 align="center">Sortix</h1>
+<h1 align="center">Martix</h1>
 <p align="center"><strong>An intelligent, privacy-first, real-time file organizer for your desktop.</strong></p>
-<p align="center">Sortix runs quietly in the background, monitoring your Downloads and custom folders. It automatically classifies and files incoming documents, media, and archives using visual Scratch-like rules, content OCR, EXIF/ID3 metadata, or an optional 100% local LLM.</p>
+<p align="center">Martix runs quietly in the background, monitoring your Downloads and custom folders. It automatically classifies and files incoming documents, media, and archives using visual Scratch-like rules, content OCR, EXIF/ID3 metadata, or an optional 100% local LLM.</p>
 
 ---
 
-## 💡 Why Sortix?
+## 💡 Why Martix?
 
 Let’s be honest: your Downloads folder is probably an endless dumping ground of PDFs, invoices, screenshots, zip files, and music downloads. Manually moving them takes time, and cloud-based file organizers compromise your privacy.
 
-Sortix handles sensitive personal files (tax returns, bank statements, contracts, photos) right on your machine. It is designed **privacy-first from day one**:
+Martix handles sensitive personal files (tax returns, bank statements, contracts, photos) right on your machine. It is designed **privacy-first from day one**:
 
 * **100% Local Execution:** Zero cloud dependencies, zero telemetry, and zero external API calls. Your documents never leave your localhost.
 * **Smart Content Classification:** Deep scans text in PDF, DOCX, and TXT files, and performs local OCR on images using Tesseract.
@@ -32,7 +32,7 @@ Sortix handles sensitive personal files (tax returns, bank statements, contracts
 
 ### 🧠 Smart Classification & Learning
 * **Visual Scratch-Style Rule Builder:** Combine filename, extension, file size, age (`age_days`), and content conditions with AND logic.
-* **Smart Learning from Corrections:** Corrected a file placement manually? Sortix analyzes the correction (via heuristic patterns or your optional local Ollama LLM) and suggests a new rule with a single click.
+* **Smart Learning from Corrections:** Corrected a file placement manually? Martix analyzes the correction (via heuristic patterns or your optional local Ollama LLM) and suggests a new rule with a single click.
 * **Archive Handling (.zip / .tar):** Safely unpacks compressed archives in temporary sandboxes with Zip-Slip protection to analyze and organize internal contents.
 * **EXIF & ID3 Tag Metadata:** Filter and rename files using photo EXIF data (camera model, capture date) and audio ID3 tags (artist, album, song title, year).
 * **Dynamic Placeholders:** Custom file renaming templates using tags like `{YYYY}`, `{Topic}`, `{ARTIST}`, `{ALBUM}`, `{EXIF_DATE}`, and `{OriginalName}`.
@@ -51,12 +51,12 @@ Sortix handles sensitive personal files (tax returns, bank statements, contracts
 ### Prerequisites
 * **Python 3.10+**
 * (Optional) **Tesseract OCR** for image text scanning.
-* (Optional) **Ollama** (`SORTIX_LLM=1`) for local AI fallback suggestions.
+* (Optional) **Ollama** (`MARTIX_LLM=1`) for local AI fallback suggestions.
 
 ### Quick Run
 ```bash
-git clone https://github.com/marcmarti9/sortix.git
-cd sortix/backend
+git clone https://github.com/marcmarti9/martix.git
+cd martix/backend
 
 # Create environment and install dependencies
 python3 -m venv .venv
@@ -89,14 +89,14 @@ The compiled binary will be placed inside `backend/dist/`.
 
 ## 🖥️ Native Desktop App & Autostart Setup
 
-Sortix can run as a **native standalone desktop application** (in its own dedicated window without any web browser UI) and start automatically whenever you log into your PC:
+Martix can run as a **native standalone desktop application** (in its own dedicated window without any web browser UI) and start automatically whenever you log into your PC:
 
 ### Automatic Desktop & Startup Installation (Linux)
 ```bash
 cd backend/deploy
 ./install_autostart_desktop.sh
 ```
-This registers Sortix in your desktop application menu (`~/.local/share/applications/sortix.desktop`) and sets it to auto-launch on startup (`~/.config/autostart/sortix.desktop`).
+This registers Martix in your desktop application menu (`~/.local/share/applications/martix.desktop`) and sets it to auto-launch on startup (`~/.config/autostart/martix.desktop`).
 
 ### Linux Service (Headless systemd user service)
 ```bash
@@ -123,7 +123,7 @@ powershell -ExecutionPolicy Bypass -File install_windows.ps1
 
 ## 🧪 Testing
 
-Sortix features a comprehensive, isolated integration test suite:
+Martix features a comprehensive, isolated integration test suite:
 
 ```bash
 cd backend
@@ -164,5 +164,5 @@ Contributions, bug reports, and feature suggestions are welcome! Please check ou
 
 ## 📄 License
 
-Sortix is open-source software licensed under the [MIT License](LICENSE).
+Martix is open-source software licensed under the [MIT License](LICENSE).
 Created with ❤️ by Marc Martí Torralba.

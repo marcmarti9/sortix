@@ -1,6 +1,6 @@
 """Proteccion de la API y validacion de rutas de destino.
 
-Sortix maneja documentos sensibles (extractos bancarios, facturas...), asi
+Martix maneja documentos sensibles (extractos bancarios, facturas...), asi
 que aunque solo escuche en localhost hay dos ataques realistas que cerrar:
 
 - CSRF / DNS rebinding: una web abierta en tu navegador puede lanzar POSTs
@@ -18,7 +18,7 @@ from urllib.parse import urlsplit
 
 from config.settings import API_TOKEN, HOME_DIR, HOST, PORT
 
-# Nombres de host desde los que es legitimo hablar con Sortix cuando
+# Nombres de host desde los que es legitimo hablar con Martix cuando
 # escucha solo en local.
 _LOCAL_HOSTNAMES = {"127.0.0.1", "localhost", "[::1]", "::1"}
 
@@ -160,9 +160,9 @@ def check_request(request) -> tuple[dict, int] | None:
             if not _is_trusted_hostname(_hostname_of(origin)):
                 return {"error": "peticion rechazada: origen no permitido"}, 403
 
-    # 3) token compartido (obligatorio si Sortix no escucha solo en local).
+    # 3) token compartido (obligatorio si Martix no escucha solo en local).
     if API_TOKEN and request.path.startswith("/api/"):
-        supplied = request.headers.get("X-Sortix-Token", "")
+        supplied = request.headers.get("X-Martix-Token") or request.headers.get("X-Sortix-Token", "")
         if not hmac.compare_digest(supplied, API_TOKEN):
             return {"error": "token invalido o ausente"}, 401
 
